@@ -63,11 +63,11 @@ This test runs on a virtual machines, that is provided by github.
 ```
 0 2 * * *
 ↑ ↑ ↑ ↑ ↑
-│ │ │ │ └── giorno della settimana (qualsiasi)
-│ │ │ └──── mese (qualsiasi)
-│ │ └────── giorno del mese (qualsiasi)
-│ └──────── ora = 2
-└────────── minuto = 0
+│ │ │ │ └── day (any) of the week
+│ │ │ └──── month (any)
+│ │ └────── day of the month (any)
+│ └──────── hour = 2
+└────────── minute = 0
 ```
 
 In this case, the cron is setup to start everyday at 2.00, indipendently from the day, or the month (as they are not defined).
