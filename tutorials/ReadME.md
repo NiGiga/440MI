@@ -12,7 +12,6 @@ This folder contains step-by-step guides and example files for popular DevOps an
 ### Jenkins
 - **tutorial.md**: Instructions for installing Jenkins (with Docker), usage, and integration with GitHub repositories.
 - **Jenkinsfile**: Example pipeline for CI/CD automation.
-- **Jenkins.Dockerfile**: Example Dockerfile for custom Jenkins setup (optional).
 
 ### GitHubActions
 - **tutorial.md**: Toy examples on setting up and using GitHub Actions for CI/CD workflows, with YAML examples and explanations.
