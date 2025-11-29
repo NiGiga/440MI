@@ -60,6 +60,7 @@ This test runs on a virtual machines, that is provided by github.
 
 - `Cron` explanation:
 
+```
 0 2 * * *
 ↑ ↑ ↑ ↑ ↑
 │ │ │ │ └── giorno della settimana (qualsiasi)
@@ -67,7 +68,7 @@ This test runs on a virtual machines, that is provided by github.
 │ │ └────── giorno del mese (qualsiasi)
 │ └──────── ora = 2
 └────────── minuto = 0
-
+```
 
 In this case, the cron is setup to start everyday at 2.00, indipendently from the day, or the month (as they are not defined).
 
