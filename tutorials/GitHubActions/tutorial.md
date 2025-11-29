@@ -141,6 +141,7 @@ It's possible to parallelize even the virtual machines on which to run the test.
 
 ## Example:
 
+```yaml
 name: Test Matrix
 on: [push]
 
@@ -161,7 +162,7 @@ jobs:
 
       - run: npm ci
       - run: npm test
-
+```
 
 ## 7. Useful Resources
 - [Official Documentation](https://docs.github.com/en/actions)
