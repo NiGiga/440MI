@@ -308,7 +308,7 @@ If the cell runs and prints \texttt{2.5}, Python, NumPy, Jupyter, and the enviro
 \item Open the project folder in VS Code.
 \item Open the command palette: \texttt{Ctrl/Cmd + Shift + P}.
 \item Search for \texttt{Python: Select Interpreter}.
-\item Choose the interpreter inside \texttt{my\_first\_env}.
+\item Choose the interpreter inside \texttt{my\_first\_env} (\texttt{my\_first\_env/bin/python}).
 \item For notebooks, click \textbf{Select Kernel} and choose the same environment.
 \end{enumerate}
 \begin{block}{Important}
@@ -361,11 +361,17 @@ Use \texttt{venv} for simple Python projects; consider Conda when scientific dep
 \end{frame}
 
 \begin{frame}[fragile]{Creating a Conda environment}
+Download and install: \url{https://www.anaconda.com/docs/getting-started/installation}
+
 \begin{lstlisting}[style=coursebash]
 conda create -n mlcourse python=3.13
 conda activate mlcourse
 conda install numpy pandas matplotlib scikit-learn jupyter
 jupyter lab
+\end{lstlisting}
+
+\begin{lstlisting}[style=coursebash]
+conda env remove -n mlcourse
 \end{lstlisting}
 \begin{block}{Same idea, different tool}
 Both \texttt{venv} and Conda create isolated environments. The goal is the same: make the project reproducible and avoid dependency conflicts.
@@ -421,6 +427,45 @@ Never install packages randomly. First activate the project environment, then in
 \coursefooter
 \end{frame}
 
+\begin{frame}[fragile]{Sharing your environment}
+\begin{columns}[T]
+\column{0.48\textwidth}
+\textbf{venv + pip}
+\begin{lstlisting}[style=coursebash]
+# Export dependencies
+python -m pip freeze > requirements.txt
+
+# Friend recreates the environment
+python -m venv myenv
+source myenv/bin/activate
+python -m pip install -r requirements.txt
+\end{lstlisting}
+\begin{block}{Share}
+Project files + \texttt{requirements.txt} + Python version.
+\end{block}
+
+\column{0.48\textwidth}
+\textbf{Conda}
+\begin{lstlisting}[style=coursebash]
+# Export environment
+conda env export --from-history > environment.yml
+
+# Friend recreates it
+conda env create -f environment.yml
+conda activate <environment_name>
+\end{lstlisting}
+\begin{block}{Share}
+Project files + \texttt{environment.yml}.
+\end{block}
+\end{columns}
+
+\vspace{0.4em}
+\begin{block}{Important}
+Do \textbf{not} share the environment folder itself. Share the environment specification and recreate it on the other machine.
+\end{block}
+\coursefooter
+\end{frame}
+
 \begin{frame}{Questions you should be able to answer}
 \begin{itemize}
 \item Why should every Python project have its own environment?
@@ -466,5 +511,8 @@ A model works on your laptop, but not on a colleague's machine. What could have 
 {Install Python, create one project folder, activate an environment, and run one notebook successfully.}
 {Once this works, we can move from setup to real data handling.}
 {The next step is using pandas to load, inspect, clean, and visualize data.}
+
+
+
 
 \end{document}
