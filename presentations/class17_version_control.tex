@@ -1,0 +1,194 @@
+\input{common}
+
+\title{Class 17: Version Control with Git}
+\author{\coursename}
+\date{}
+
+\begin{document}
+
+\frame{\titlepage \coursefooter}
+
+\begin{frame}{Agenda}
+\begin{itemize}
+\item Why version control matters for a growing modeling codebase, and soon, a team project.
+\item Git fundamentals: commits, history, and diffs.
+\item Branching and merging, including conflicts.
+\item Remotes: push, pull, and collaborating through GitHub.
+\item Pull requests and code review as a team practice.
+\item What never belongs in a commit.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Learning goals}
+\learninggoals{
+\begin{itemize}
+\item Initialize and use a Git repository for day-to-day modeling work.
+\item Write commits that form a usable, reviewable history.
+\item Branch to isolate risky or exploratory changes, and resolve a merge conflict without losing work.
+\item Collaborate through a shared remote using pull requests and code review.
+\item Recognize what belongs in `.gitignore` and what should never be committed at all.
+\end{itemize}
+}
+\coursefooter
+\end{frame}
+
+\coursecontextframe
+{Getting code, notebooks, and a growing project under reliable, reviewable version control.}
+{Class 16 tracked which model and hyperparameters won. This class tracks the code and history behind every one of those runs, and builds the habits the team project (Classes 32-34) will require.}
+{In the fraud case, version control tracks changes to the scoring pipeline, notebooks, and Streamlit app as they evolve across the course.}
+{In the pasteurization case, it tracks changes to the synthetic sensor generator, streaming logic, and dashboard the same way.}
+{The course thread moves from individually tracked experiments to a shared, reviewable codebase -- the foundation the rest of the MLOps block builds on.}
+
+\begin{frame}{Why version control, and why now}
+\begin{itemize}
+\item Every prior class produced code that changed: notebooks, a Streamlit app, feature pipelines.
+\item Without version control, ``which version produced this result'' is a guess, not an answer.
+\item Git gives every experiment, threshold choice, and interface change a traceable history.
+\item This is a practical habit to build now, before project work in Classes 32-34 makes it unavoidable.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}[fragile]{Git fundamentals}
+\begin{lstlisting}[style=coursepython,language=bash]
+git init
+git clone <url>
+git status
+git add <file>
+git commit -m "message"
+git log --oneline
+git diff
+\end{lstlisting}
+\begin{itemize}
+\item A commit is a snapshot with a message, an author, and a parent -- together they form a history, not just a backup.
+\item `git diff` and `git log` turn ``what changed, and why'' into an answerable question instead of a guess.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{What makes a good commit}
+\begin{itemize}
+\item Small and atomic: one logical change per commit, not a day's worth of edits at once.
+\item A message that explains why, not just what -- the diff already shows what changed.
+\item Committed often enough that `git log` reads like a story, not a single ``final version'' checkpoint.
+\item Working code at each commit, where practical, so history stays useful for debugging and rollback.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}[fragile]{Branching to try an idea safely}
+\begin{lstlisting}[style=coursepython,language=bash]
+git checkout -b experiment/cost-sensitive-threshold
+git add .
+git commit -m "Try cost-sensitive threshold tuning"
+git push -u origin experiment/cost-sensitive-threshold
+# compare results, then merge or discard the branch
+\end{lstlisting}
+\begin{itemize}
+\item A branch isolates a risky or exploratory change so `main` keeps the last known-good model and interface.
+\item If the experiment does not beat the baseline, the branch can simply be discarded -- no cleanup, no regret.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}[fragile]{Merging, and when it goes wrong}
+\begin{lstlisting}[style=coursepython,language=bash]
+git checkout main
+git merge experiment/cost-sensitive-threshold
+# CONFLICT (content): Merge conflict in scoring.py
+\end{lstlisting}
+\begin{itemize}
+\item Git marks the conflicting region with `<<<<<<<`, `=======`, and `>>>>>>>` -- it needs a human decision, not a tool trick.
+\item Resolving a conflict means choosing (or combining) the intended behavior, then committing the resolution.
+\item Merge conflicts are expected, not exceptional; resolving them is part of collaborative engineering, not a sign of failure.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}[fragile]{Remotes and collaborating through GitHub}
+\begin{lstlisting}[style=coursepython,language=bash]
+git remote -v
+git push origin main
+git pull origin main
+git fetch
+\end{lstlisting}
+\begin{itemize}
+\item A remote is a shared copy of the repository -- GitHub, in this course's case.
+\item `push` sends local commits to the remote; `pull` fetches and merges the remote's new commits into the local branch.
+\item Pulling before starting new work avoids diverging unnecessarily from teammates.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Pull requests and code review}
+\begin{itemize}
+\item A pull request is a review checkpoint before code reaches a shared branch -- exactly where a teammate can catch a silent behavior change.
+\item Small pull requests are easier to review honestly than large ones.
+\item Review comments are about the code and the decision behind it, not the author.
+\item For the practical project, agree on a branching convention (for example, one feature branch per teammate or per task) before the first commit, not after the first conflict.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}[fragile]{What never belongs in a commit}
+\begin{lstlisting}[style=coursepython,language=bash]
+/.ipynb_checkpoints
+/venv
+.DS_Store
+
+# Python caches
+__pycache__/
+*.py[cod]
+\end{lstlisting}
+\begin{itemize}
+\item This is this repository's own `.gitignore`: build artifacts, virtual environments, and editor files never need a history.
+\item Secrets, API keys, and credentials never belong in a commit -- not even one that gets ``fixed'' later, since the history remains.
+\item Large trained artifacts are a judgment call: sometimes worth committing, sometimes better handled outside Git entirely.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Repository connections}
+\repoactivity{
+\begin{itemize}
+\item This repository's own commit history and `.gitignore` are a live example of the ideas in this class.
+\item `notebooks/`, `streamlit/`, and `pasteurization/` are exactly the kind of fast-changing code that benefits from small, frequent commits.
+\item The practical project (Classes 32-34) is where each team applies this to its own shared repository.
+\end{itemize}
+}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Discussion prompt}
+\begin{block}{Question}
+Two teammates each push a working fix for the same bug, on different branches, without talking first. What went wrong before the merge conflict even happened?
+\end{block}
+\begin{itemize}
+\item This separates ``we can merge this'' from ``we should have coordinated before writing it.''
+\item It motivates lightweight team conventions (issue assignment, small pull requests, short-lived branches) over relying on Git to resolve coordination problems after the fact.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Papers and materials}
+\readinglist{
+\href{https://git-scm.com/book/en/v2}{Pro Git (free online book)};\
+\href{https://docs.github.com/en/pull-requests}{GitHub documentation on pull requests};\
+\href{https://nvie.com/posts/a-successful-git-branching-model/}{Driessen, A Successful Git Branching Model};\
+\href{https://www.atlassian.com/git/tutorials/using-branches/merge-conflicts}{Atlassian guide to resolving merge conflicts}.
+}
+\coursefooter
+\end{frame}
+
+\classclosingframe
+{\begin{itemize}
+\item Version control turns ``which version produced this'' from a guess into an answer.
+\item Branches isolate risk; pull requests turn merging into a review checkpoint, not a surprise.
+\item What never gets committed (secrets, build artifacts) matters as much as what does.
+\end{itemize}}
+{Teams should set up a shared repository with an agreed branching convention before their first project commit -- not after the first conflict.}
+{Class 18 moves from a fixed, versioned snapshot to a model that must keep working as new data keeps arriving: online learning and concept drift.}
+{A reviewable history is what makes every later engineering practice in this course -- CI/CD, rollback, monitoring -- possible in the first place.}
+
+\end{document}
