@@ -44,8 +44,8 @@ The materials in this repository follow a 36-class sequence organized in three m
 13. Data types — tabular, time series, spectral/signal, image
 14. Structured / semi-structured / unstructured data, encoding, and embeddings
 15. Feature engineering (cleaning, curation, selection)
-16. ML modeling 1 and experiment tracking
-17. ML modeling 2 and decision-making
+16. ML modeling, experiment tracking, evaluation, and decision-making
+17. Version control with Git
 18. Online machine learning and concept drift
 19. Streaming sensor practice
 20. Model deployment and prediction serving
