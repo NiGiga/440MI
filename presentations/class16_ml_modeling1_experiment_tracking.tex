@@ -1,6 +1,6 @@
 \input{common}
 
-\title{Class 16: Modeling Fundamentals, Experiment Tracking, and Tuning}
+\title{Class 16: Modeling, Experiment Tracking, Evaluation, and Decision-Making}
 \author{\coursename}
 \date{}
 
@@ -16,6 +16,10 @@
 \item What must be tracked to compare models fairly.
 \item Tuning strategies and Neptune-style experiment logging in this repository.
 \item From a tuned run to a governed, traceable artifact.
+\item Evaluation must match the task, not the other way around.
+\item From a prediction to a decision: what interfaces must communicate.
+\item Thresholds, uncertainty, and operational cost.
+\item Where trust in a model interface breaks down.
 \end{itemize}
 \coursefooter
 \end{frame}
@@ -27,17 +31,20 @@
 \item Match model families to data, objectives, and operational constraints.
 \item Design an experiment before running it, and know what must be logged to compare runs fairly.
 \item Explain how hyperparameter search connects to reproducibility and later delivery.
+\item Choose evaluation metrics that reflect the real decision, not a generic leaderboard score.
+\item Distinguish a prediction from a decision, and identify what a decision-support interface must expose.
+\item Recognize the practical failure modes that erode trust in a served model.
 \end{itemize}
 }
 \coursefooter
 \end{frame}
 
 \coursecontextframe
-{Choosing model families and turning experimentation into a disciplined, tracked practice.}
-{With features settled, this class asks how to compare modeling choices honestly, and how to keep evidence for why one model was selected over another.}
-{In the fraud case, we compare model families and hyperparameters for a rare-event classifier and log every run so results stay reproducible.}
-{In the pasteurization case, experiment tracking can compare forecasting variants or preprocessing choices without losing context between runs.}
-{A good model choice must be explainable, repeatable, and ready for later delivery, not just the best number in a notebook.}
+{Choosing model families, tracking experiments honestly, and turning the winning run into a trustworthy decision.}
+{With features settled, this class asks how to compare modeling choices, keep evidence for why one model was selected, and then judge whether that model is actually good for the decision it supports.}
+{In the fraud case, we compare model families and hyperparameters for a rare-event classifier, log every run so results stay reproducible, and then ask what threshold and interface turn a fraud score into a safe action.}
+{In the pasteurization case, experiment tracking compares forecasting variants without losing context between runs, and a dashboard must communicate sensor state and model output together so an operator can act.}
+{A good model choice must be explainable, repeatable, and ready for later delivery -- and its score only matters once it is turned into a decision someone can trust.}
 
 \begin{frame}{What is modeling?}
 \begin{itemize}
@@ -229,12 +236,135 @@ run["artifacts/model"].upload("best_gb_model.pkl")
 \coursefooter
 \end{frame}
 
+\begin{frame}{From a winning run to a real decision}
+\begin{itemize}
+\item Tracking tells us which run won. It does not yet tell us whether that run is good for the decision it supports.
+\item Imbalanced classification needs precision, recall, PR-AUC, and threshold analysis, not accuracy alone.
+\item Regression needs error-magnitude metrics such as MAE or RMSE, chosen for the unit that matters operationally.
+\item Calibrated probabilities matter whenever a downstream action depends on confidence, not just the predicted class.
+\item Operational cost matters as much as any single numerical score.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Fraud dataset reality: extreme class imbalance}
+\centering
+\includegraphics[height=0.72\textheight]{images/class05_fraud_class_balance.png}
+
+{\scriptsize From `Credit_Card_Fraud_Detection_Solution.ipynb`: the first modeling challenge is not algorithm choice but the rarity of the positive class.}
+\coursefooter
+\end{frame}
+
+\begin{frame}[fragile]{Repository example: fit, predict, and inspect errors}
+\begin{lstlisting}[style=coursepython]
+y_pred = best_model.predict(X_test_scaled)
+
+print("Confusion Matrix:")
+print(confusion_matrix(y_test, y_pred))
+
+print("\nClassification Report:")
+print(classification_report(y_test, y_pred))
+\end{lstlisting}
+\begin{itemize}
+\item From `Credit_Card_Fraud_Detection_Solution.ipynb`: the confusion matrix exposes missed fraud cases directly, which a single accuracy number cannot.
+\item The classification report opens the door to threshold and cost-sensitive evaluation.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Model interpretation: top feature importances}
+\centering
+\includegraphics[height=0.7\textheight]{images/class05_feature_importance.png}
+
+{\scriptsize Generated from the saved `streamlit/model.pkl`: tree-based models can highlight influential variables, but importance is still not the same as causality.}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Why accuracy can fail badly}
+\begin{block}{Fraud example}
+If only 0.2\% of transactions are fraudulent, a model that predicts ``legitimate'' every time may look highly accurate while being operationally useless.
+\end{block}
+\begin{itemize}
+\item This is why threshold, recall, and precision are part of the engineering conversation, not an afterthought.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Distribution shape interacts with evaluation}
+\centering
+\includegraphics[height=0.72\textheight]{images/class05_transaction_amount_hist.png}
+
+{\scriptsize The transaction amount distribution is highly skewed, a reminder that evaluation, scaling, and threshold choice all interact with each other.}
+\coursefooter
+\end{frame}
+
+\begin{frame}{A model creates value only through an interface}
+\begin{itemize}
+\item A trained model that nobody can call or interpret has limited practical value, however good its offline metrics look.
+\item An interface makes predictions available to users, services, and operational workflows.
+\item The interface also shapes trust: input checks, response format, and clarity all matter as much as the metric that selected the model.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Prediction is not the final decision}
+\begin{itemize}
+\item A fraud score suggests escalation, not guilt.
+\item A process alert suggests investigation, not automatic shutdown.
+\item Interfaces should communicate uncertainty, threshold logic, and next actions whenever possible.
+\end{itemize}
+\begin{block}{Engineering implication}
+The threshold that turns a probability into a decision is itself a design choice, not a byproduct of the model.
+\end{block}
+\coursefooter
+\end{frame}
+
+\begin{frame}[fragile]{Repository example: threshold-driven decision support}
+\begin{lstlisting}[style=coursepython]
+if st.button("Predict Fraud Risk"):
+    prediction = model.predict(scaled)[0]
+    probability = model.predict_proba(scaled)[0][1]
+
+    if prediction == 1:
+        st.error(f"Fraud Probability: {probability:.2%}")
+    else:
+        st.success(f"Fraud Probability: {probability:.2%}")
+\end{lstlisting}
+\begin{itemize}
+\item From `streamlit/pages/App_Credit_Card.py`: the interface exposes both the decision and the probability behind it.
+\item A human user needs labels, context, and actionable feedback, not raw class labels or JSON.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{What a better dashboard should include}
+\begin{itemize}
+\item A visible explanation of what the model does and does not do.
+\item Controls that reflect meaningful business inputs, not arbitrary technical internals.
+\item Results that support action: alert, score, trend, or explanation.
+\item Consistent links to data provenance, model version, or monitoring signals.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Where trust breaks down}
+\begin{itemize}
+\item The interface hides uncertainty behind a single confident-looking number.
+\item The inputs shown to users do not match the assumptions the model was trained under.
+\item The threshold was chosen once, informally, and never revisited as the data changed.
+\item The dashboard makes a demo model look authoritative when it has not been validated for that purpose.
+\end{itemize}
+\coursefooter
+\end{frame}
+
 \begin{frame}{Repository connections}
 \repoactivity{
 \begin{itemize}
 \item `notebooks/Class6_Model_Training_.ipynb` gives the baseline split, tune, evaluate, and serialize workflow.
 \item `notebooks/Class7_Model_Tuning_Neptune.ipynb` adds Neptune.ai tracking on top of the same grid-search pattern.
-\item Together they show the same discipline applied with and without an experiment tracker.
+\item `Credit_Card_Fraud_Detection_Solution.ipynb` supplies the evaluation workflow this class is grounded in.
+\item `streamlit/pages/App_Credit_Card.py` turns the same model into a threshold-driven, human-facing decision.
+\item All four artifacts share one model and one scaler, so tracking, evaluation, and decision-making must stay consistent with each other.
 \end{itemize}
 }
 \coursefooter
@@ -250,13 +380,28 @@ Two runs report similar cross-validation scores but were trained on differently 
 \coursefooter
 \end{frame}
 
+\begin{frame}{Discussion prompt}
+\begin{block}{Question}
+The fraud model has high recall but noticeably lower precision at the deployed threshold. Should we ship it as-is?
+\end{block}
+\begin{itemize}
+\item This forces students to separate metric quality from decision quality and operational cost.
+\item It also motivates the online adaptation and serving discussions in Classes 18 and 20.
+\end{itemize}
+\coursefooter
+\end{frame}
+
 \begin{frame}{Papers and materials}
 \readinglist{
 \href{https://docs.neptune.ai/}{Neptune documentation};\
 \href{https://mlflow.org/docs/latest/index.html}{MLflow documentation};\
 \href{https://scikit-learn.org/stable/modules/grid_search.html}{scikit-learn model selection guide};\
 \href{https://jmlr.org/papers/volume13/bergstra12a/bergstra12a.pdf}{Bergstra and Bengio (2012), Random Search};\
-\href{https://proceedings.mlr.press/v28/bergstra13.html}{Bergstra et al. (2013), Hyperopt}.
+\href{https://proceedings.mlr.press/v28/bergstra13.html}{Bergstra et al. (2013), Hyperopt};\
+\href{https://scikit-learn.org/stable/modules/model_evaluation.html}{scikit-learn model evaluation guide};\
+\href{https://dl.acm.org/doi/10.1145/2347736.2347755}{Domingos (2012), A Few Useful Things to Know About Machine Learning};\
+\href{https://www.oreilly.com/library/view/designing-machine-learning/9781098107956/}{Chip Huyen, Designing Machine Learning Systems};\
+\href{https://docs.streamlit.io/}{Streamlit documentation}.
 }
 \coursefooter
 \end{frame}
@@ -266,9 +411,11 @@ Two runs report similar cross-validation scores but were trained on differently 
 \item Model selection is tied to the prediction task, the error costs, and the constraints of the system it will live in.
 \item A useful experiment records data, configuration, metrics, and artifacts together, automatically.
 \item Hyperparameter search is valuable only when it is reproducible, comparable, and beats a real baseline.
+\item Metrics are decision tools: a prediction becomes a decision only once thresholds, uncertainty, and interface design are made explicit.
+\item Trust in a model interface is earned through validation, clarity, and honest communication of limits.
 \end{itemize}}
-{Project teams should now be able to defend a baseline, compare tracked alternatives, and explain why a chosen model fits the fraud or pasteurization setting.}
-{Class 17 turns these tracked results into evaluation and decision-making: metrics that reflect the real task, and interfaces that turn a score into an action.}
-{Reproducible experimentation is what makes the next step, judging a model's real-world decision quality, meaningful rather than anecdotal.}
+{Project teams should now be able to defend a baseline, compare tracked alternatives, explain why a chosen model fits the fraud or pasteurization setting, and defend the threshold or interface behavior built on top of it.}
+{Class 17 puts this growing, tracked codebase under proper version control -- the habit that keeps every experiment, threshold choice, and interface change reviewable and reversible.}
+{Reproducible experimentation and honest evaluation are what make the next step, judging a model's real-world decision quality over time, meaningful rather than anecdotal.}
 
 \end{document}
