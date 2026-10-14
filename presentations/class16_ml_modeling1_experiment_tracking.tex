@@ -1,4 +1,5 @@
 \input{common}
+\usepackage{amssymb}
 
 \title{Class 16: Modeling, Experiment Tracking, Evaluation, and Decision-Making}
 \author{\coursename}
@@ -10,188 +11,220 @@
 
 \begin{frame}{Agenda}
 \begin{itemize}
-\item Modeling as abstraction and representation choice.
-\item Matching model families to problem types and constraints.
-\item Why experimentation is engineering practice, not casual score-hunting.
-\item What must be tracked to compare models fairly.
-\item Tuning strategies and Neptune-style experiment logging in this repository.
-\item From a tuned run to a governed, traceable artifact.
-\item Evaluation must match the task, not the other way around.
-\item From a prediction to a decision: what interfaces must communicate.
-\item Thresholds, uncertainty, and operational cost.
-\item Where trust in a model interface breaks down.
+\item Modeling as the choice of a hypothesis class and a loss function.
+\item Matching model families to problem types and operational constraints.
+\item Experimentation as an engineering discipline, and what must be tracked to compare models fairly.
+\item Hyperparameter search strategies and experiment logging with Neptune.
+\item From a tuned run to a traceable artifact.
+\item Evaluation metrics that match the task.
+\item From a prediction to a decision: thresholds, uncertainty, and operational cost.
+\item Decision-support interfaces and the conditions under which trust breaks down.
 \end{itemize}
 \coursefooter
 \end{frame}
-
-\begin{frame}{Learning goals}
-\learninggoals{
-\begin{itemize}
-\item Frame modeling as an engineering choice among accuracy, interpretability, speed, and maintainability.
-\item Match model families to data, objectives, and operational constraints.
-\item Design an experiment before running it, and know what must be logged to compare runs fairly.
-\item Explain how hyperparameter search connects to reproducibility and later delivery.
-\item Choose evaluation metrics that reflect the real decision, not a generic leaderboard score.
-\item Distinguish a prediction from a decision, and identify what a decision-support interface must expose.
-\item Recognize the practical failure modes that erode trust in a served model.
-\end{itemize}
-}
-\coursefooter
-\end{frame}
-
-\coursecontextframe
-{Choosing model families, tracking experiments honestly, and turning the winning run into a trustworthy decision.}
-{With features settled, this class asks how to compare modeling choices, keep evidence for why one model was selected, and then judge whether that model is actually good for the decision it supports.}
-{In the fraud case, we compare model families and hyperparameters for a rare-event classifier, log every run so results stay reproducible, and then ask what threshold and interface turn a fraud score into a safe action.}
-{In the pasteurization case, experiment tracking compares forecasting variants without losing context between runs, and a dashboard must communicate sensor state and model output together so an operator can act.}
-{A good model choice must be explainable, repeatable, and ready for later delivery -- and its score only matters once it is turned into a decision someone can trust.}
 
 \begin{frame}{What is modeling?}
 \begin{itemize}
-\item Modeling represents patterns in data so the system can generalize to unseen cases.
-\item Every model encodes assumptions about structure, noise, and decision boundaries.
-\item Choosing a model means choosing a trade-off among accuracy, interpretability, speed, and maintainability.
+\item A model is a function $f: \mathcal{X} \to \mathcal{Y}$ chosen from a hypothesis class $\mathcal{H}$ (e.g.\ linear functions, decision trees) so that it generalizes to unseen samples.
+\item Learning selects $f$ by minimizing the empirical risk on the training data,
+\[
+\hat{R}(f) = \frac{1}{n}\sum_{i=1}^{n} L\big(y_i, f(\mathbf{x}_i)\big),
+\]
+where the loss $L$ quantifies the cost of an error; the quantity of interest is the expected risk on new data.
+\item The choice of $\mathcal{H}$ encodes assumptions about structure, noise, and decision boundaries, and determines the trade-off among accuracy, interpretability, computational cost, and maintainability.
 \end{itemize}
 \coursefooter
 \end{frame}
 
-\begin{frame}{Useful modeling questions}
+\begin{frame}{Questions that precede the choice of a model}
 \begin{enumerate}
-\item What decision or prediction are we supporting?
-\item What kind of target do we have: class, score, or continuous value?
-\item What kinds of errors are expensive?
-\item How fast must training and inference be?
-\item How often do we expect the data distribution to change?
+\item Which decision or prediction does the model support?
+\item What is the target space: a class, a score, or a continuous value (cf.\ Class 13)?
+\item Which errors are costly, and how costly relative to each other?
+\item What are the latency constraints for training and inference?
+\item How frequently is the data distribution expected to change?
 \end{enumerate}
 \coursefooter
 \end{frame}
 
 \begin{frame}{Model families in context}
 \begin{tabularx}{\textwidth}{>{\bfseries}l X}
-Linear models & Fast, simple, and often strong baselines. \\
-Tree-based models & Good for heterogeneous tabular data and nonlinearity. \\
-Probabilistic models & Useful when uncertainty and conditional structure matter. \\
-Neural networks & Powerful for large unstructured or highly nonlinear problems. \\
-Online models & Update incrementally as new observations arrive. \\
+Linear models & Computationally efficient, interpretable, and strong baselines. \\
+\addlinespace[0.3em]
+Tree-based models & Suited to heterogeneous tabular data and non-linear interactions. \\
+\addlinespace[0.3em]
+Probabilistic models & Appropriate when uncertainty and conditional structure must be modeled explicitly. \\
+\addlinespace[0.3em]
+Neural networks & Suited to large unstructured datasets and highly non-linear problems. \\
+\addlinespace[0.3em]
+Online models & Updated incrementally as new observations arrive (Class 18). \\
+\bottomrule
 \end{tabularx}
 \coursefooter
 \end{frame}
 
-\begin{frame}{More realistic examples}
+\begin{frame}{Examples from the course}
 \begin{itemize}
-\item Fraud detection: random forest or gradient boosting with threshold tuning.
-\item Wine-quality-style regression: gradient boosting tuned by grid search and tracked in Neptune.
-\item Pasteurization forecasting: incremental regression, revisited fully in Class 18.
-\item Industrial anomaly detection: useful only if alert cost and false-positive rate are understood upfront.
+\item \textbf{Fraud detection:} random forest or gradient boosting, followed by the choice of a decision threshold.
+\item \textbf{Wine quality regression:} gradient boosting tuned by grid search and tracked in Neptune (\texttt{Class7\_Model\_Tuning\_Neptune.ipynb}).
+\item \textbf{Pasteurization forecasting:} incremental regression, treated in Class 18.
+\item \textbf{Industrial anomaly detection:} useful only if the cost of an alert and the acceptable false-positive rate are defined in advance.
 \end{itemize}
 \coursefooter
 \end{frame}
 
-\begin{frame}[fragile]{Repository example: a baseline training pipeline}
-\begin{lstlisting}[style=coursepython]
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
-)
-
-scaler = StandardScaler()
-X_train_scaled = scaler.fit_transform(X_train)
-X_test_scaled = scaler.transform(X_test)
-\end{lstlisting}
-\begin{itemize}
-\item From `streamlit/modeling.py`, mirrored in `notebooks/Class6_Model_Training_.ipynb`.
-\item Stratification matters because fraud is rare; a naive split can distort the class balance a model actually sees during training.
+\begin{frame}{Repository example: a baseline training pipeline}
+\centering
+\begin{tikzpicture}[node distance=0.55cm and 0.7cm, font=\footnotesize]
+\node[flowbox, minimum width=2.6cm] (d) {Fraud dataset\\$n = 284{,}807$\\492 fraud (0.173\%)};
+\node[flowbox, minimum width=2.6cm, above right=0.15cm and 1.1cm of d] (tr) {Training split (80\%)\\227{,}845 / 394 fraud};
+\node[flowbox, minimum width=2.6cm, below right=0.15cm and 1.1cm of d] (te) {Test split (20\%)\\56{,}962 / 98 fraud};
+\node[accentbox, minimum width=2.3cm, right=1.0cm of tr] (sc) {Scaler: fit\\(mean, s.d.)};
+\node[flowbox, minimum width=2.3cm, right=1.0cm of te] (st) {Scaler: transform\\only};
+\node[flowbox, minimum width=2.0cm, right=0.9cm of sc] (m) {Random forest\\(fit)};
+\node[flowbox, minimum width=2.0cm, right=0.9cm of st] (ev) {Evaluation};
+\draw[arrow] (d) -- node[above, sloped, font=\scriptsize] {stratified} (tr);
+\draw[arrow] (d) -- (te);
+\draw[arrow] (tr) -- (sc); \draw[arrow] (te) -- (st);
+\draw[arrow] (sc) -- (m); \draw[arrow] (st) -- (ev);
+\draw[arrow, dashed] (sc) -- node[right, font=\scriptsize] {parameters} (st);
+\draw[arrow] (m) -- node[right, font=\scriptsize] {model} (ev);
+\end{tikzpicture}
+\vspace{0.6em}
+\begin{itemize}\footnotesize
+\item From \texttt{streamlit/modeling.py}; \texttt{notebooks/Class6\_Model\_Training\_.ipynb} applies the same pattern to the Iris dataset.
+\item \textbf{Stratification} keeps the fraud rate at 0.173\% in both splits (394 and 98 positive samples); a random split could leave the test set with noticeably fewer or more positives.
+\item \textbf{The scaler is fitted on the training split only} and then applied to the test split with the same parameters, to avoid preprocessing leakage (Class 13).
 \end{itemize}
 \coursefooter
 \end{frame}
 
 \begin{frame}{Experimentation is an engineering discipline}
 \begin{itemize}
-\item The purpose of experimentation is not to collect many scores, but to support a credible model choice.
-\item Every run should answer a question: does a new feature help, does a different model family help, or does tuning justify extra complexity?
-\item Fix the evaluation protocol and decide what counts as a meaningful improvement before looking at results.
-\item When the question is unclear, experiment tracking becomes a storage system for confusion rather than evidence.
+\item The purpose of experimentation is not to accumulate scores, but to support a credible model choice.
+\item Every run should answer a stated question: does a new feature, a different model family, or additional tuning justify its complexity?
+\item The evaluation protocol and the minimum improvement considered meaningful must be fixed before results are inspected.
+\item Without a stated question, an experiment tracker stores results without providing evidence.
 \end{itemize}
 \coursefooter
 \end{frame}
 
 \begin{frame}{What must be tracked, and why}
 \begin{tabularx}{\textwidth}{>{\bfseries}l X}
-Dataset version / extraction date & So a result can be reproduced against the same data later. \\
-Feature pipeline version & So preprocessing changes are not confused with model changes. \\
-Hyperparameters and seeds & So the exact configuration that produced a result is known. \\
-Metrics, confusion matrices, artifacts & So the trained output, not just a number, can be audited. \\
-Code commit or notebook snapshot & So the logic behind a run can be replayed months later. \\
+Dataset version or extraction date & Allows a result to be reproduced on the same data. \\
+\addlinespace[0.3em]
+Feature pipeline version & Separates the effect of preprocessing changes from that of model changes. \\
+\addlinespace[0.3em]
+Hyperparameters and random seeds & Identify the exact configuration that produced a result. \\
+\addlinespace[0.3em]
+Metrics, confusion matrices, artifacts & Allow the trained model, not only a number, to be audited. \\
+\addlinespace[0.3em]
+Code commit or notebook snapshot & Allows the logic behind a run to be replayed later (Class 17). \\
+\bottomrule
 \end{tabularx}
 \coursefooter
 \end{frame}
 
-\begin{frame}{Fair comparison versus common bias}
+\begin{frame}{Fair comparison and sources of bias}
 \begin{columns}[T]
 \column{0.48\textwidth}
-\textbf{A fair comparison has}
+\textbf{A fair comparison uses}
 \begin{itemize}
-\item The same dataset split or protocol
-\item The same preprocessing, unless that is the experiment
-\item Metrics chosen for the real decision
+\item the same data split or validation protocol;
+\item the same preprocessing, unless preprocessing is the object of the experiment;
+\item metrics chosen for the actual decision;
+\item a measure of variability, e.g.\ mean $\pm$ standard deviation across cross-validation folds.
 \end{itemize}
 \column{0.48\textwidth}
-\textbf{Bias creeps in from}
+\textbf{Bias is introduced by}
 \begin{itemize}
-\item Reusing the test set until it becomes part of tuning
-\item Mixing notebook state and hidden edits
-\item Reporting only the winning run
+\item reusing the test set until it becomes part of tuning (model-selection leakage);
+\item hidden notebook state and untracked edits;
+\item reporting only the best run.
 \end{itemize}
 \end{columns}
 \coursefooter
 \end{frame}
 
-\begin{frame}{Model search strategies}
+\begin{frame}{Hyperparameter search strategies}
 \begin{tabularx}{\textwidth}{>{\bfseries}l X}
-Manual tuning & Small problems and pedagogical intuition. \\
-Grid search & Small, well-structured search spaces. \\
-Random search & Better coverage when many hyperparameters matter unevenly. \\
-Bayesian optimization & Expensive models where each run has high cost. \\
+Manual tuning & Small problems; useful to build intuition. \\
+\addlinespace[0.3em]
+Grid search & Exhaustive evaluation of a small, structured search space. \\
+\addlinespace[0.3em]
+Random search & Better coverage when only a few of many hyperparameters matter (Bergstra and Bengio, 2012). \\
+\addlinespace[0.3em]
+Bayesian optimization & A surrogate model of the score guides the search; suited to expensive models. \\
+\bottomrule
 \end{tabularx}
+\vspace{0.6em}
+\begin{itemize}
+\item A tuned model should outperform a simple, default, or previously deployed baseline by more than the variability of the estimate.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Neptune example: search space and protocol}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begingroup\footnotesize
+\textbf{Search space} of a gradient boosting regressor:
+\vspace{0.3em}
+
+\begin{tabular}{>{\ttfamily}l l}
+\normalfont\bfseries Hyperparameter & \bfseries Values \\
+\toprule
+n\_estimators & 100, 200, 300 \\
+max\_depth & 3, 5, 7 \\
+learning\_rate & 0.05, 0.1, 0.2 \\
+min\_samples\_split & 2, 5, 10 \\
+\bottomrule
+\end{tabular}
+\par\endgroup
+\column{0.48\textwidth}
+\begingroup\footnotesize
+\textbf{Protocol:}
+\begin{itemize}
+\item Data: red wine quality, 1{,}599 samples; target \texttt{quality}.
+\item Split: 75\% training, 25\% test (fixed seed).
+\item Grid search: $3^4 = 81$ configurations $\times$ 5-fold cross-validation $=$ 405 fits, scored by $R^2$ on the training split.
+\item The test split is used once, after selection.
+\end{itemize}
+\par\endgroup
+\end{columns}
+\vspace{0.6em}
+{\scriptsize From \texttt{notebooks/Class7\_Model\_Tuning\_Neptune.ipynb}, which combines \texttt{GridSearchCV} with the Neptune experiment tracker.\par}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Neptune example: a tracked run record}
+\begingroup\footnotesize
+Every run stores its configuration, results, and artifacts together, in the same place, automatically:
+\par\endgroup
 \vspace{0.4em}
-\begin{itemize}
-\item A tuned model should beat a simple, previously deployed, or default baseline by a meaningful margin, not just a decimal point.
+\centering
+\begingroup\footnotesize
+\renewcommand{\arraystretch}{1.2}
+\begin{tabularx}{0.9\textwidth}{>{\ttfamily}l X}
+\normalfont\bfseries Field & \bfseries Value logged by the notebook \\
+\toprule
+best/parameters & learning\_rate $= 0.05$, max\_depth $= 7$, min\_samples\_split $= 5$, n\_estimators $= 200$ \\
+best/cv\_score & mean $R^2$ over the 5 folds of the selected configuration \\
+test/mse & 0.349 \\
+test/r2 & 0.436 \\
+artifacts/model & \texttt{best\_gb\_model.pkl} (serialized estimator) \\
+\bottomrule
+\end{tabularx}
+\par\endgroup
+\vspace{0.5em}
+\begin{itemize}\footnotesize
+\item Mean squared error (MSE) and coefficient of determination ($R^2$) are computed once on the test split, after selection.
+\item The pattern is tool-independent: MLflow, Weights \& Biases, or an internal registry store the same record. The serialized artifact is the bridge to deployment (Class 20).
 \end{itemize}
 \coursefooter
 \end{frame}
 
-\begin{frame}[fragile]{Neptune example: defining a search space}
-\begin{lstlisting}[style=coursepython]
-model = GradientBoostingRegressor(random_state=42)
-
-param_grid = {
-    "n_estimators": [100, 200, 300],
-    "max_depth": [3, 5, 7],
-    "learning_rate": [0.05, 0.1, 0.2],
-    "min_samples_split": [2, 5, 10],
-}
-\end{lstlisting}
-\begin{itemize}
-\item From `notebooks/Class7_Model_Tuning_Neptune.ipynb`, which uses the Neptune.ai experiment tracker alongside `GridSearchCV`.
-\item The grid gives a realistic trade-off among model complexity, fit time, and predictive gain.
-\end{itemize}
-\coursefooter
-\end{frame}
-
-\begin{frame}[fragile]{Neptune example: tuning and logging together}
-\begin{lstlisting}[style=coursepython]
-grid_search.fit(X_train, y_train)
-
-run["best/parameters"] = grid_search.best_params_
-run["best/cv_score"] = grid_search.best_score_
-\end{lstlisting}
-\begin{itemize}
-\item The important idea is not Neptune specifically, but the discipline of storing parameters and metrics together, in the same place, automatically.
-\item That same pattern maps naturally onto MLflow, Weights \& Biases, or an internal experiment registry.
-\end{itemize}
-\coursefooter
-\end{frame}
-
-\begin{frame}{From notebook run to governed asset}
+\begin{frame}{From a notebook run to a governed asset}
 \centering
 \begin{tikzpicture}[node distance=0.9cm and 0.9cm]
 \node[flowbox] (question) {Question};
@@ -208,151 +241,153 @@ run["best/cv_score"] = grid_search.best_score_
 \coursefooter
 \end{frame}
 
-\begin{frame}[fragile]{Neptune example: evaluate and persist the winner}
-\begin{lstlisting}[style=coursepython]
-best_model = grid_search.best_estimator_
-y_pred = best_model.predict(X_test)
-
-run["test/mse"] = mean_squared_error(y_test, y_pred)
-run["test/r2"] = r2_score(y_test, y_pred)
-
-joblib.dump(best_model, "best_gb_model.pkl")
-run["artifacts/model"].upload("best_gb_model.pkl")
-\end{lstlisting}
-\begin{itemize}
-\item A useful experiment ends with a traceable artifact, not only a screenshot of the best score.
-\item This is also the natural bridge to model registries and deployment, covered fully in Class 20.
-\end{itemize}
-\coursefooter
-\end{frame}
-
 \begin{frame}{Common tuning mistakes}
 \begin{itemize}
-\item Tuning on the test set.
-\item Comparing runs trained on different preprocessing logic.
-\item Reporting only the best metric, not its variability or computational cost.
-\item Forgetting that a slightly weaker model may be much easier to deploy, explain, or monitor.
+\item Tuning hyperparameters on the test set.
+\item Comparing runs trained with different preprocessing.
+\item Reporting only the best score, without its variability or computational cost.
+\item Ignoring that a slightly less accurate model may be considerably easier to deploy, explain, or monitor.
 \end{itemize}
 \coursefooter
 \end{frame}
 
-\begin{frame}{From a winning run to a real decision}
+\begin{frame}{Evaluation metrics must match the task}
 \begin{itemize}
-\item Tracking tells us which run won. It does not yet tell us whether that run is good for the decision it supports.
-\item Imbalanced classification needs precision, recall, PR-AUC, and threshold analysis, not accuracy alone.
-\item Regression needs error-magnitude metrics such as MAE or RMSE, chosen for the unit that matters operationally.
-\item Calibrated probabilities matter whenever a downstream action depends on confidence, not just the predicted class.
-\item Operational cost matters as much as any single numerical score.
+\item Tracking identifies which run performed best; it does not establish whether that run is adequate for the decision it supports.
+\item \textbf{Imbalanced classification:} with true and false positives and negatives (TP, FP, TN, FN),
+\[
+\text{precision} = \frac{TP}{TP + FP}, \qquad \text{recall} = \frac{TP}{TP + FN},
+\]
+summarized over all thresholds by the area under the precision--recall curve (PR-AUC); accuracy alone is misleading.
+\item \textbf{Regression:} mean absolute error (MAE) and root mean squared error (RMSE), expressed in the unit that matters operationally.
+\item \textbf{Calibration:} required whenever a downstream action depends on the predicted probability rather than only on the predicted class.
 \end{itemize}
 \coursefooter
 \end{frame}
 
-\begin{frame}{Fraud dataset reality: extreme class imbalance}
+\begin{frame}{The fraud dataset at a glance}
 \centering
-\includegraphics[height=0.72\textheight]{images/class05_fraud_class_balance.png}
+\includegraphics[width=\textwidth]{images/class16_fraud_overview.pdf}
 
-{\scriptsize From `Credit_Card_Fraud_Detection_Solution.ipynb`: the first modeling challenge is not algorithm choice but the rarity of the positive class.}
-\coursefooter
-\end{frame}
-
-\begin{frame}[fragile]{Repository example: fit, predict, and inspect errors}
-\begin{lstlisting}[style=coursepython]
-y_pred = best_model.predict(X_test_scaled)
-
-print("Confusion Matrix:")
-print(confusion_matrix(y_test, y_pred))
-
-print("\nClassification Report:")
-print(classification_report(y_test, y_pred))
-\end{lstlisting}
-\begin{itemize}
-\item From `Credit_Card_Fraud_Detection_Solution.ipynb`: the confusion matrix exposes missed fraud cases directly, which a single accuracy number cannot.
-\item The classification report opens the door to threshold and cost-sensitive evaluation.
+\vspace{0.3em}
+\begin{itemize}\footnotesize
+\item \textbf{Imbalance:} 492 of 284{,}807 transactions (0.173\%) are fraudulent; the first difficulty is the rarity of the positive class, not the choice of algorithm.
+\item \textbf{Importance:} three principal components (\texttt{V17}, \texttt{V12}, \texttt{V14}) account for 43\% of the impurity-based importance of the deployed random forest; importance measures association, not causal effect.
+\item \textbf{Skewness:} amounts span four orders of magnitude, and fraudulent transactions tend to be smaller (median 9.25 versus 22.00); scaling, evaluation, and threshold choice interact with this shape.
 \end{itemize}
 \coursefooter
 \end{frame}
 
-\begin{frame}{Model interpretation: top feature importances}
+\begin{frame}{Repository example: inspecting the errors}
+\begin{columns}[T]
+\column{0.42\textwidth}
 \centering
-\includegraphics[height=0.7\textheight]{images/class05_feature_importance.png}
+\includegraphics[width=0.95\linewidth]{images/class16_confusion_matrix.pdf}
 
-{\scriptsize Generated from the saved `streamlit/model.pkl`: tree-based models can highlight influential variables, but importance is still not the same as causality.}
+{\scriptsize Test split (56{,}962 transactions), best random forest of the grid search in \texttt{Credit\_Card\_Fraud\_Detection\_Solution.ipynb}.\par}
+\column{0.56\textwidth}
+\begingroup\footnotesize
+\[
+\text{precision} = \frac{75}{75 + 2} = 0.97, \qquad \text{recall} = \frac{75}{75 + 23} = 0.77
+\]
+\[
+\text{accuracy} = \frac{56{,}862 + 75}{56{,}962} = 0.9996
+\]
+\par\endgroup
+\begin{itemize}\footnotesize
+\item 23 of the 98 fraudulent transactions are missed (FN), while only 2 legitimate ones are flagged (FP).
+\item Accuracy, at 99.96\%, conceals both numbers; the confusion matrix exposes them directly.
+\item Whether 23 missed frauds are acceptable depends on the cost of a missed fraud relative to a false alarm, which motivates the threshold analysis that follows.
+\end{itemize}
+\end{columns}
 \coursefooter
 \end{frame}
 
-\begin{frame}{Why accuracy can fail badly}
+\begin{frame}{Why accuracy fails under class imbalance}
 \begin{block}{Fraud example}
-If only 0.2\% of transactions are fraudulent, a model that predicts ``legitimate'' every time may look highly accurate while being operationally useless.
+With 0.173\% fraudulent transactions, a classifier that always predicts ``legitimate'' attains an accuracy of 99.83\%, a recall of 0, and no operational value.
 \end{block}
 \begin{itemize}
-\item This is why threshold, recall, and precision are part of the engineering conversation, not an afterthought.
+\item Precision, recall, and the decision threshold are therefore part of the engineering design, not a post-hoc check.
 \end{itemize}
-\coursefooter
-\end{frame}
-
-\begin{frame}{Distribution shape interacts with evaluation}
-\centering
-\includegraphics[height=0.72\textheight]{images/class05_transaction_amount_hist.png}
-
-{\scriptsize The transaction amount distribution is highly skewed, a reminder that evaluation, scaling, and threshold choice all interact with each other.}
 \coursefooter
 \end{frame}
 
 \begin{frame}{A model creates value only through an interface}
 \begin{itemize}
-\item A trained model that nobody can call or interpret has limited practical value, however good its offline metrics look.
+\item A trained model that cannot be invoked or interpreted has limited practical value, regardless of its offline metrics.
 \item An interface makes predictions available to users, services, and operational workflows.
-\item The interface also shapes trust: input checks, response format, and clarity all matter as much as the metric that selected the model.
+\item The interface also determines trust: input validation, response format, and clarity matter as much as the metric used to select the model.
 \end{itemize}
 \coursefooter
 \end{frame}
 
-\begin{frame}{Prediction is not the final decision}
+\begin{frame}{A prediction is not a decision}
 \begin{itemize}
-\item A fraud score suggests escalation, not guilt.
-\item A process alert suggests investigation, not automatic shutdown.
-\item Interfaces should communicate uncertainty, threshold logic, and next actions whenever possible.
+\item A fraud score suggests escalation, not guilt; a process alert suggests investigation, not automatic shutdown.
+\item A classifier outputs an estimate $\hat{p}(\mathbf{x})$ of $P(y = 1 \mid \mathbf{x})$; the decision rule is $\hat{y} = \mathbf{1}[\hat{p}(\mathbf{x}) \ge \tau]$.
+\item If $\hat{p}$ is calibrated and $c_{FP}$, $c_{FN}$ denote the costs of a false positive and a false negative, the expected cost is minimized by
+\[
+\tau^{*} = \frac{c_{FP}}{c_{FP} + c_{FN}}.
+\]
 \end{itemize}
 \begin{block}{Engineering implication}
-The threshold that turns a probability into a decision is itself a design choice, not a byproduct of the model.
+The threshold that turns a probability into a decision is a design choice derived from costs, not a by-product of the model (the default $\tau = 0.5$ assumes $c_{FP} = c_{FN}$).
 \end{block}
 \coursefooter
 \end{frame}
 
-\begin{frame}[fragile]{Repository example: threshold-driven decision support}
-\begin{lstlisting}[style=coursepython]
-if st.button("Predict Fraud Risk"):
-    prediction = model.predict(scaled)[0]
-    probability = model.predict_proba(scaled)[0][1]
+\begin{frame}{Choosing the threshold: a cost analysis}
+\centering
+\includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{images/class16_threshold_cost.pdf}
 
-    if prediction == 1:
-        st.error(f"Fraud Probability: {probability:.2%}")
-    else:
-        st.success(f"Fraud Probability: {probability:.2%}")
-\end{lstlisting}
-\begin{itemize}
-\item From `streamlit/pages/App_Credit_Card.py`: the interface exposes both the decision and the probability behind it.
-\item A human user needs labels, context, and actionable feedback, not raw class labels or JSON.
+\vspace{0.2em}
+\begin{itemize}\footnotesize
+\item Deployed model (\texttt{streamlit/model.pkl}) on the test split, assuming a missed fraud costs 100 times a false alarm.
+\item \textbf{Default} $\tau = 0.5$: 81 frauds detected, 17 missed, 5 false alarms; cost 1{,}705. \textbf{Minimum} at $\tau \approx 0.06$: 88 detected, 10 missed, 55 false alarms; cost 1{,}055 ($-38\%$).
+\item The theoretical $\tau^{*} = 1/101 \approx 0.01$ differs from the empirical minimum because random-forest scores (vote fractions) are not calibrated probabilities.
+\item In practice, $\tau$ must be chosen on a validation split; selecting it on the test split, as in this illustration, is model-selection leakage.
 \end{itemize}
 \coursefooter
 \end{frame}
 
-\begin{frame}{What a better dashboard should include}
+\begin{frame}{Repository example: decision support in Streamlit}
+\centering
+\begin{tikzpicture}[node distance=0.55cm, font=\footnotesize]
+\node[flowbox, minimum width=1.9cm] (in) {User inputs\\(30 features)};
+\node[flowbox, minimum width=1.7cm, right=of in] (sc) {\texttt{scaler.pkl}\\transform};
+\node[flowbox, minimum width=1.7cm, right=of sc] (m) {\texttt{model.pkl}\\random forest};
+\node[flowbox, minimum width=1.5cm, right=of m] (p) {$\hat{p}(\mathbf{x})$};
+\node[accentbox, minimum width=1.9cm, right=of p] (t) {threshold\\$\tau = 0.5$ (implicit)};
+\node[flowbox, minimum width=1.9cm, below=0.8cm of t] (out) {Display: class\\and probability};
+\draw[arrow] (in) -- (sc); \draw[arrow] (sc) -- (m); \draw[arrow] (m) -- (p); \draw[arrow] (p) -- (t); \draw[arrow] (t) -- (out);
+\draw[arrow, dashed, coursegold] (p.south) |- (out.west);
+\end{tikzpicture}
+\vspace{0.6em}
+\begin{itemize}\footnotesize
+\item From \texttt{streamlit/pages/App\_Credit\_Card.py}: the interface shows both the predicted class and the estimated probability.
+\item The class comes from \texttt{model.predict}, i.e.\ the implicit threshold $\tau = 0.5$; under the cost assumption of the previous analysis, a threshold near 0.06 would detect 7 more frauds in the test split.
+\item The threshold should be an explicit, documented, and versioned parameter of the interface, not a default of the library.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Requirements for a decision-support dashboard}
 \begin{itemize}
-\item A visible explanation of what the model does and does not do.
-\item Controls that reflect meaningful business inputs, not arbitrary technical internals.
-\item Results that support action: alert, score, trend, or explanation.
-\item Consistent links to data provenance, model version, or monitoring signals.
+\item An explicit statement of what the model does and does not do.
+\item Inputs that correspond to meaningful domain variables rather than technical internals.
+\item Outputs that support action: alert, score, trend, or explanation.
+\item References to data provenance, model version, and monitoring signals.
 \end{itemize}
 \coursefooter
 \end{frame}
 
 \begin{frame}{Where trust breaks down}
 \begin{itemize}
-\item The interface hides uncertainty behind a single confident-looking number.
-\item The inputs shown to users do not match the assumptions the model was trained under.
+\item The interface conceals uncertainty behind a single, apparently precise number.
+\item The inputs presented to users do not match the assumptions under which the model was trained.
 \item The threshold was chosen once, informally, and never revisited as the data changed.
-\item The dashboard makes a demo model look authoritative when it has not been validated for that purpose.
+\item The dashboard makes a demonstration model appear authoritative although it has not been validated for that purpose.
 \end{itemize}
 \coursefooter
 \end{frame}
@@ -360,62 +395,53 @@ if st.button("Predict Fraud Risk"):
 \begin{frame}{Repository connections}
 \repoactivity{
 \begin{itemize}
-\item `notebooks/Class6_Model_Training_.ipynb` gives the baseline split, tune, evaluate, and serialize workflow.
-\item `notebooks/Class7_Model_Tuning_Neptune.ipynb` adds Neptune.ai tracking on top of the same grid-search pattern.
-\item `Credit_Card_Fraud_Detection_Solution.ipynb` supplies the evaluation workflow this class is grounded in.
-\item `streamlit/pages/App_Credit_Card.py` turns the same model into a threshold-driven, human-facing decision.
-\item All four artifacts share one model and one scaler, so tracking, evaluation, and decision-making must stay consistent with each other.
+\item \texttt{notebooks/Class6\_Model\_Training\_.ipynb}: baseline split, tuning, evaluation, and serialization (Iris dataset).
+\item \texttt{notebooks/Class7\_Model\_Tuning\_Neptune.ipynb}: grid search with Neptune tracking (wine quality regression).
+\item \texttt{Credit\_Card\_Fraud\_Detection\_Solution.ipynb}: evaluation of the fraud classifier.
+\item \texttt{streamlit/modeling.py} and \texttt{streamlit/pages/App\_Credit\_Card.py}: training, persistence of model and scaler, and the human-facing decision interface.
 \end{itemize}
 }
-\coursefooter
-\end{frame}
-
-\begin{frame}{Discussion prompt}
-\begin{block}{Question}
-Two runs report similar cross-validation scores but were trained on differently scaled inputs. Can we trust the comparison?
-\end{block}
-\begin{itemize}
-\item This connects tracked metadata directly back to the ``what must be tracked'' table earlier in this class.
-\end{itemize}
-\coursefooter
-\end{frame}
-
-\begin{frame}{Discussion prompt}
-\begin{block}{Question}
-The fraud model has high recall but noticeably lower precision at the deployed threshold. Should we ship it as-is?
-\end{block}
-\begin{itemize}
-\item This forces students to separate metric quality from decision quality and operational cost.
-\item It also motivates the online adaptation and serving discussions in Classes 18 and 20.
-\end{itemize}
 \coursefooter
 \end{frame}
 
 \begin{frame}{Papers and materials}
 \readinglist{
-\href{https://docs.neptune.ai/}{Neptune documentation};\
-\href{https://mlflow.org/docs/latest/index.html}{MLflow documentation};\
-\href{https://scikit-learn.org/stable/modules/grid_search.html}{scikit-learn model selection guide};\
-\href{https://jmlr.org/papers/volume13/bergstra12a/bergstra12a.pdf}{Bergstra and Bengio (2012), Random Search};\
-\href{https://proceedings.mlr.press/v28/bergstra13.html}{Bergstra et al. (2013), Hyperopt};\
-\href{https://scikit-learn.org/stable/modules/model_evaluation.html}{scikit-learn model evaluation guide};\
-\href{https://dl.acm.org/doi/10.1145/2347736.2347755}{Domingos (2012), A Few Useful Things to Know About Machine Learning};\
-\href{https://www.oreilly.com/library/view/designing-machine-learning/9781098107956/}{Chip Huyen, Designing Machine Learning Systems};\
-\href{https://docs.streamlit.io/}{Streamlit documentation}.
+\fontsize{6.8}{8.2}\selectfont
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begin{itemize}\setlength{\itemsep}{1pt}
+\item Bergstra, J., Bengio, Y. (2012). Random search for hyper-parameter optimization. \emph{Journal of Machine Learning Research}, 13, 281--305.
+\item Bergstra, J., Yamins, D., Cox, D. (2013). Making a science of model search: Hyperparameter optimization in hundreds of dimensions for vision architectures. \emph{Proceedings of ICML}, PMLR 28(1), 115--123.
+\item Elkan, C. (2001). The foundations of cost-sensitive learning. \emph{Proceedings of IJCAI}, 973--978.
+\item Saito, T., Rehmsmeier, M. (2015). The precision-recall plot is more informative than the ROC plot when evaluating binary classifiers on imbalanced datasets. \emph{PLoS ONE}, 10(3), e0118432.
+\item Niculescu-Mizil, A., Caruana, R. (2005). Predicting good probabilities with supervised learning. \emph{Proceedings of ICML}, 625--632.
+\end{itemize}
+\column{0.5\textwidth}
+\begin{itemize}\setlength{\itemsep}{1pt}
+\item Domingos, P. (2012). A few useful things to know about machine learning. \emph{Communications of the ACM}, 55(10), 78--87.
+\item Huyen, C. (2022). \emph{Designing Machine Learning Systems}. O'Reilly.
+\item scikit-learn User Guide: \href{https://scikit-learn.org/stable/modules/grid_search.html}{tuning hyperparameters}; \href{https://scikit-learn.org/stable/modules/model_evaluation.html}{model evaluation}.
+\item Tool documentation: \href{https://docs.neptune.ai/}{Neptune}; \href{https://mlflow.org/docs/latest/index.html}{MLflow}; \href{https://docs.streamlit.io/}{Streamlit}.
+\end{itemize}
+\end{columns}
 }
 \coursefooter
 \end{frame}
 
-\classclosingframe
-{\begin{itemize}
-\item Model selection is tied to the prediction task, the error costs, and the constraints of the system it will live in.
-\item A useful experiment records data, configuration, metrics, and artifacts together, automatically.
-\item Hyperparameter search is valuable only when it is reproducible, comparable, and beats a real baseline.
-\item Metrics are decision tools: a prediction becomes a decision only once thresholds, uncertainty, and interface design are made explicit.
-\item Trust in a model interface is earned through validation, clarity, and honest communication of limits.
-\end{itemize}}
-{Project teams should now be able to defend a baseline, compare tracked alternatives, explain why a chosen model fits the fraud or pasteurization setting, and defend the threshold or interface behavior built on top of it.}
-{Class 17 puts this growing, tracked codebase under proper version control -- the habit that keeps every experiment, threshold choice, and interface change reviewable and reversible.}
-{Reproducible experimentation and honest evaluation are what make the next step, judging a model's real-world decision quality over time, meaningful rather than anecdotal.}
+\begin{frame}{Take-away message}
+\vfill
+\centering
+\begin{tikzpicture}
+\node[fill=courseice, draw=courseblue, thick, rounded corners=4pt, inner sep=10pt, text width=0.78\textwidth, align=center, font=\large] {A model is selected by tracked, reproducible evidence,\\ evaluated with metrics that match the task,\\[0.3em] and turned into a decision through a threshold\\ derived from the costs of its errors.};
+\end{tikzpicture}
+
+\vfill
+{\Large\bfseries\color{courseblue} Thank you for your attention.}
+
+\vspace{0.4em}
+{\small\color{coursegray} Next: Class 17 --- version control with Git.}
+\vfill
+\coursefooter
+\end{frame}
 
 \end{document}
