@@ -1,4 +1,5 @@
 \input{common}
+\usepackage{amssymb}
 
 \title{Class 20: Model Deployment and Prediction Serving}
 \author{\coursename}
@@ -12,62 +13,51 @@
 \begin{itemize}
 \item From a trained artifact to a callable, running service.
 \item Flask as a service layer, Streamlit as a presentation layer.
-\item The serving architecture already present in this repository.
-\item Serving patterns and production concerns beyond a single demo.
-\item Closing the Data-Driven block and opening the road into MLOps.
+\item The serving components of this repository, and what they lack.
+\item Serving patterns and production concerns beyond a demonstration.
+\item Closing the Data-Driven block and opening the MLOps block.
 \end{itemize}
 \coursefooter
 \end{frame}
-
-\begin{frame}{Learning goals}
-\learninggoals{
-\begin{itemize}
-\item Explain the roles of APIs and dashboards in exposing a trained model.
-\item Compare Flask and Streamlit and know when each is the right tool.
-\item List the minimum quality requirements for a credible prediction service.
-\item Recognize which production serving concerns this course's demos do not yet address.
-\end{itemize}
-}
-\coursefooter
-\end{frame}
-
-\coursecontextframe
-{Turning a model artifact into a served, callable, and observable system.}
-{This is the last class of the Data-Driven block: everything from data type, through encoding, features, tuning, and evaluation, converges here into one deployable service boundary.}
-{The fraud case becomes a Flask scoring endpoint, `Class6\_model\_api.py`, callable by other services or analysts.}
-{The pasteurization case pairs a Flask streaming API with a Streamlit dashboard hub, `streamlit/Main.py`, so sensor state and predictions stay visible together.}
-{From Class 21 onward, the course treats these served systems as full software engineering objects: requirements, architecture, delivery, and monitoring.}
 
 \begin{frame}{A model creates value only through an interface}
 \begin{itemize}
-\item A trained model that nobody can call or interpret has limited practical value, however strong its offline metrics.
-\item Interfaces make predictions available to users, services, and operational workflows.
-\item The interface also shapes trust: input checks, response format, and clarity all matter.
+\item A trained model that cannot be invoked or interpreted has limited practical value, regardless of its offline metrics.
+\item An interface makes predictions available to users, services, and operational workflows.
+\item A served model is a small software system with three parts: an interface, a preprocessing contract, and an operational surface (health, logs, versions).
 \end{itemize}
 \coursefooter
 \end{frame}
 
 \begin{frame}{Flask and Streamlit play different roles}
 \begin{tabularx}{\textwidth}{>{\bfseries}l X}
-Flask & Best for programmable endpoints over HTTP, such as `POST /predict` or a streaming route. \\
-Streamlit & Best for a fast interactive UI: demos, dashboards, or exploratory interfaces. \\
-Together & A common pattern is Flask for the backend service and Streamlit for the human-facing interface. \\
+Flask & A web framework for programmable endpoints over the Hypertext Transfer Protocol (HTTP), such as \texttt{POST /predict} or a streaming route. \\
+\addlinespace[0.3em]
+Streamlit & A framework for interactive user interfaces in Python: demonstrations, dashboards, exploratory tools. \\
+\addlinespace[0.3em]
+Combined & A common pattern: Flask as the back-end service, consumed by other programs, and Streamlit as the human-facing front end. \\
+\bottomrule
 \end{tabularx}
 \coursefooter
 \end{frame}
 
-\begin{frame}{Repository serving architecture}
+\begin{frame}{Serving components of this repository}
 \centering
-\begin{tikzpicture}[node distance=1cm and 1cm]
-\node[flowbox] (model) {Model\\artifact};
-\node[flowbox, right=of model] (api) {Flask API\\`/predict`};
-\node[accentbox, right=of api] (ui) {Streamlit\\UI};
-\node[flowbox, below=of api] (logs) {Prediction logs\\and feedback};
+\begin{tikzpicture}[node distance=0.9cm and 1.0cm, font=\small]
+\node[flowbox] (model) {Model artifact\\\scriptsize \texttt{.pkl}};
+\node[flowbox, right=of model] (api) {Flask API\\\scriptsize \texttt{/predict}, \texttt{/stream}};
+\node[accentbox, right=of api] (ui) {Streamlit\\\scriptsize \texttt{streamlit/Main.py}};
+\node[flowbox, dashed, below=of api] (logs) {Prediction logs\\and feedback};
 \draw[arrow] (model) -- (api);
 \draw[arrow] (api) -- (ui);
-\draw[arrow] (api) -- (logs);
-\draw[arrow, bend right=20] (logs.east) to node[right, font=\scriptsize] {monitoring} (ui.south);
+\draw[arrow, dashed] (api) -- (logs);
+\draw[arrow, dashed] (logs.east) -| node[pos=0.25, below, font=\scriptsize] {monitoring} (ui.south);
 \end{tikzpicture}
+\vspace{0.6em}
+\begin{itemize}\footnotesize
+\item Solid elements exist in the repository; dashed elements do not yet exist: no service records its predictions, so nothing can be monitored after deployment.
+\item Closing this gap is the subject of continuous monitoring (Class 31).
+\end{itemize}
 \coursefooter
 \end{frame}
 
@@ -87,69 +77,145 @@ def predict():
     return jsonify({"prediction": int(pred)})
 \end{lstlisting}
 \begin{itemize}
-\item This is the complete serving logic of `Class6\_model\_api.py`: load once at startup, expose one prediction route.
-\item It is deliberately small so students can see exactly what a minimal service boundary contains, and what it is still missing.
+\item This is the complete serving logic of \texttt{Class6\_model\_api.py}: load the model once at start-up and expose one prediction route.
+\item It is intentionally minimal, so that what a service boundary contains, and what it still lacks, is visible.
 \end{itemize}
 \coursefooter
 \end{frame}
 
-\begin{frame}{What a better API should include}
+\begin{frame}{What the minimal endpoint lacks}
 \begin{itemize}
-\item A clear input schema, instead of trusting `data["features"]` to always be well-formed.
-\item Error handling for malformed or incomplete requests.
-\item Stable JSON output with prediction and confidence where appropriate.
-\item Logging hooks for later monitoring and debugging.
-\item Health or status endpoints for operational checks.
+\item \textbf{A deployable artifact:} the file \texttt{notebooks/best\_random\_forest\_model.pkl} does not exist in the repository, so the service fails at start-up; the training notebook saves \texttt{model.pkl}.
+\item \textbf{The preprocessing contract:} the model was trained on standardized features, but the endpoint passes raw features without the scaler. This \emph{training--serving skew}, $f(\mathbf{x}) \neq f(\phi_{\mathrm{train}}(\mathbf{x}))$, produces wrong predictions without any error message.
+\item \textbf{Input validation:} \texttt{data["features"]} is trusted to contain exactly 30 numbers; any other request raises an unhandled exception.
+\item \textbf{A useful response:} only a bare class $0/1$, without the probability, the threshold, or the model version.
+\item \textbf{Operational surface:} no logging, and \texttt{debug=True} on \texttt{0.0.0.0} exposes the interactive debugger to the network, which allows remote code execution.
 \end{itemize}
 \coursefooter
 \end{frame}
 
-\begin{frame}[fragile]{Repository example: the dashboard hub}
-\begin{lstlisting}[style=coursepython]
-st.set_page_config(
-    page_title="440MI - Machine Learning Dashboard",
-    page_icon=":robot:",
-    layout="wide",
-    initial_sidebar_state="expanded"
-)
+\begin{frame}{Training--serving skew, measured}
+\begingroup\small
+The deployed random forest (\texttt{streamlit/model.pkl}) applied to the 56{,}962 test transactions, with and without the scaler used in training ($\tau = 0.5$):
+\par\endgroup
+\vspace{0.5em}
+\centering
+\begingroup\footnotesize
+\begin{tabular}{l c c c}
+Input to the model & Frauds detected (TP) & Missed (FN) & False alarms (FP) \\
+\toprule
+Standardized, as in training & 81 & 17 & 5 \\
+Raw features, as in \texttt{Class6\_model\_api.py} & 79 & 19 & 16 \\
+\bottomrule
+\end{tabular}
+\par\endgroup
+\vspace{0.6em}
+\begin{itemize}\footnotesize
+\item The service raises no error: it silently returns worse predictions, with three times as many false alarms.
+\item The damage is moderate here because \texttt{V1}--\texttt{V28} are principal components whose scale is already close to unit variance; only \texttt{Time} and \texttt{Amount} change substantially. With features on very different scales, the degradation would be much larger.
+\item Remedy: persist the preprocessing together with the model (or as one \texttt{Pipeline} object) and load both in the service.
+\end{itemize}
+\coursefooter
+\end{frame}
 
-st.title("Machine Learning Streamlit Hub")
-st.markdown("""
-Welcome to the 440MI + 305SM Course.
-This interface automatically discovers all available modules
-inside the pages/ directory and allows you to navigate between them.
-""")
+\begin{frame}{A corrected service: \texttt{serving/fraud\_api.py}}
+\begingroup\footnotesize
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{>{\bfseries}l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+& \bfseries \texttt{Class6\_model\_api.py} & \bfseries \texttt{serving/fraud\_api.py} \\
+\toprule
+Artifact & Missing file; the service does not start & \texttt{streamlit/model.pkl}, identified by a hash (model version) \\
+Preprocessing & None (training--serving skew) & The scaler fitted in training \\
+Validation & None; malformed input raises an exception & 30 finite numbers, otherwise status 400 with a message \\
+Response & Bare class $0/1$ & Probability, explicit threshold, decision, version, request identifier, latency \\
+Logging & None & One JSON line per prediction (inputs and outputs) \\
+Operations & \texttt{debug=True} on \texttt{0.0.0.0} & \texttt{GET /health}; debugger disabled; bound to localhost \\
+\bottomrule
+\end{tabularx}
+\par\endgroup
+\vspace{0.4em}
+{\scriptsize The minimal file is kept unchanged in the repository as a teaching example. Run the corrected service from the repository root: \texttt{python serving/fraud\_api.py} (port 5001).\par}
+\coursefooter
+\end{frame}
+
+\begin{frame}[fragile]{The corrected service: real responses}
+\begin{columns}[T]
+\column{0.53\textwidth}
+\textbf{\footnotesize\texttt{POST /predict}, a fraudulent test transaction} {\scriptsize (200)}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize, columns=fullflexible, keepspaces=true, frame=single, backgroundcolor=\color{codebg}, rulecolor=\color{courseblue!40}]
+{
+  "fraud_probability": 0.915,
+  "is_fraud": true,
+  "threshold": 0.5,
+  "model_version": "1382290f145e",
+  "request_id": "f98e4f26-...",
+  "latency_ms": 11.21
+}
 \end{lstlisting}
-\begin{itemize}
-\item `streamlit/Main.py` is the single entry point that Streamlit's multipage mechanism uses to discover every dashboard in `pages/`.
-\item One hub, many served views: fraud scoring, pasteurization streaming, and online learning all live behind it.
+\column{0.43\textwidth}
+\textbf{\footnotesize 29 values instead of 30} {\scriptsize (400)}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize, columns=fullflexible, keepspaces=true, frame=single, backgroundcolor=\color{codebg}, rulecolor=\color{courseblue!40}]
+{"error": "\"features\" must be a
+ list of 30 numbers (Time, V1,
+ ..., Amount)"}
+\end{lstlisting}
+\textbf{\footnotesize A non-numeric value} {\scriptsize (400)}
+\begin{lstlisting}[basicstyle=\ttfamily\scriptsize, columns=fullflexible, keepspaces=true, frame=single, backgroundcolor=\color{codebg}, rulecolor=\color{courseblue!40}]
+{"error": "\"features\" must contain
+ only finite numbers"}
+\end{lstlisting}
+\end{columns}
+\vspace{0.3em}
+\begin{itemize}\footnotesize
+\item A legitimate transaction from the same test split receives a probability of 0.005. Every response is also appended to \texttt{logs/predictions.jsonl}, which is excluded from Git.
 \end{itemize}
 \coursefooter
 \end{frame}
 
-\begin{frame}{Serving patterns in production}
+\begin{frame}{Repository example: the dashboard hub}
+\centering
+\begin{tikzpicture}[font=\footnotesize, box/.style={flowbox, minimum width=3.2cm, minimum height=0.95cm}]
+\node[accentbox, minimum width=2.6cm, minimum height=1.2cm] (hub) at (0,0) {\texttt{streamlit/Main.py}\\\scriptsize hub (entry point)};
+\node[box] (cc) at (5.0,1.35) {\texttt{App\_Credit\_Card.py}\\\scriptsize fraud scoring};
+\node[box] (pa) at (5.0,0) {\texttt{App\_Pasteurization.py}\\\scriptsize live sensor plots};
+\node[box] (as) at (5.0,-1.35) {\texttt{App\_Stream.py}\\\scriptsize online learning + ADWIN};
+\node[flowbox, minimum width=2.9cm] (s1) at (10.0,1.35) {\texttt{model.pkl} + \texttt{scaler.pkl}\\\scriptsize loaded in the page};
+\node[flowbox, minimum width=2.9cm] (s2) at (10.0,0) {\texttt{serving.py}\\\scriptsize \texttt{/stream}, port 8001};
+\node[flowbox, minimum width=2.9cm] (s3) at (10.0,-1.35) {Open-Meteo API\\\scriptsize polled by the page};
+\draw[arrow] (hub) -- (cc); \draw[arrow] (hub) -- (pa); \draw[arrow] (hub) -- (as);
+\draw[arrow] (s1) -- (cc); \draw[arrow] (s2) -- (pa); \draw[arrow] (s3) -- (as);
+\end{tikzpicture}
+\vspace{0.6em}
+\begin{itemize}\footnotesize
+\item \texttt{streamlit run streamlit/Main.py} starts the hub; Streamlit discovers every file in \texttt{pages/} and lists it in the navigation.
+\item The three pages use three different serving patterns: a model loaded inside the user interface, a separate streaming service, and an external application programming interface (API).
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Serving patterns}
 \begin{tabularx}{\textwidth}{>{\bfseries}l X}
-Batch scoring & Predictions computed periodically over a stored dataset, not on demand. \\
-Online request-response & A client calls an endpoint and waits synchronously for one prediction, as in `Class6\_model\_api.py`. \\
-Streaming serving & Predictions computed continuously over an incoming event stream, as in the pasteurization case. \\
+Batch scoring & Predictions are computed periodically for a stored dataset and stored for later use; latency is irrelevant, throughput matters. \\
+\addlinespace[0.3em]
+Online request--response & A client sends one request and waits synchronously for one prediction, as in \texttt{Class6\_model\_api.py}; latency is critical. \\
+\addlinespace[0.3em]
+Streaming & Predictions are computed continuously over an incoming event stream, as in the pasteurization case (Classes 18--19). \\
+\bottomrule
 \end{tabularx}
 \coursefooter
 \end{frame}
 
-\begin{frame}{Production serving concerns this repo's demos do not cover}
-\begin{itemize}
-\item Latency budgets and load testing under concurrent requests.
-\item Model versioning and safe rollback if a new artifact regresses.
-\item Schema and input validation enforced before the model is ever called.
-\item Observability: structured logs, request tracing, and alerting on failure rates.
+\begin{frame}{Production concerns not covered by the demonstrations}
+\begin{itemize}\small
+\item \textbf{Performance:} latency budgets and load tests. Measured on 1{,}000 sequential requests to \texttt{serving/fraud\_api.py}: 50th percentile 14\,ms, 95th percentile 17.5\,ms. With the random forest as trained (\texttt{n\_jobs=-1}), the same requests took 41 and 86\,ms: parallelism designed for training slows down single predictions.
+\item \textbf{Serving infrastructure:} Flask itself warns that its development server must not be used in production; a production deployment uses a Web Server Gateway Interface (WSGI) server (e.g.\ Gunicorn) behind a reverse proxy.
+\item \textbf{Versioning and compatibility:} \texttt{model.pkl} was serialized with scikit-learn 1.7.2, whereas \texttt{requirements.txt} pins 1.6.0; a model registry stores the artifact with the exact library versions needed to load it.
+\item \textbf{Observability:} structured logs (now present), request tracing, and alerts on error rates.
 \end{itemize}
-\begin{block}{Why this matters now}
-These are exactly the gaps that motivate the software engineering and MLOps material starting next class.
-\end{block}
 \coursefooter
 \end{frame}
 
-\begin{frame}{From a demo service to a production deployment}
+\begin{frame}{From a demonstration service to a production deployment}
 \centering
 \begin{tikzpicture}[node distance=1cm and 1cm]
 \node[flowbox] (demo) {Flask /\\Streamlit demo};
@@ -160,9 +226,9 @@ These are exactly the gaps that motivate the software engineering and MLOps mate
 \draw[arrow] (container) -- (orchestrate);
 \draw[arrow] (orchestrate) -- (monitor);
 \end{tikzpicture}
-\vspace{0.4em}
+\vspace{0.6em}
 \begin{itemize}
-\item Every arrow here is a topic the MLOps block develops in depth, starting from Class 21.
+\item Each step is developed in the MLOps block: containers and continuous integration and delivery (CI/CD) in Class 30, monitoring and scalability in Class 31.
 \end{itemize}
 \coursefooter
 \end{frame}
@@ -170,9 +236,9 @@ These are exactly the gaps that motivate the software engineering and MLOps mate
 \begin{frame}{Repository connections}
 \repoactivity{
 \begin{itemize}
-\item `Class6\_model\_api.py` is the minimal Flask serving example for the fraud case.
-\item `streamlit/Main.py` is the dashboard hub that presents fraud, pasteurization, and streaming pages together.
-\item `pasteurization/serving.py` shows the same serving concerns applied to a continuous stream instead of a single request.
+\item \texttt{Class6\_model\_api.py}: the minimal Flask serving example for the fraud case; \texttt{serving/fraud\_api.py}: its corrected counterpart.
+\item \texttt{streamlit/Main.py}: the hub that presents the fraud, pasteurization, and online-learning pages together.
+\item \texttt{pasteurization/serving.py}: the same serving concerns applied to a continuous stream instead of single requests.
 \end{itemize}
 }
 \coursefooter
@@ -180,43 +246,50 @@ These are exactly the gaps that motivate the software engineering and MLOps mate
 
 \begin{frame}{Readiness checklist before calling a model ``served''}
 \begin{itemize}
-\item Can the service reject a malformed request without crashing?
-\item Is the exact preprocessing used at inference identical to what was used in training?
-\item Is there any record of which model version answered a given request?
-\item Would a teammate other than the author know how to redeploy this service?
-\end{itemize}
-\coursefooter
-\end{frame}
-
-\begin{frame}{Discussion prompt}
-\begin{block}{Question}
-`Class6\_model\_api.py` returns a bare 0/1 prediction with no schema, confidence, or logging. Is it production-ready?
-\end{block}
-\begin{itemize}
-\item This is deliberately the same tension raised across evaluation (Class 17) and now serving: a working demo is not the same as a dependable system.
+\item Does the service start from a clean checkout of the repository, with the referenced artifacts present?
+\item Can it reject a malformed request with an informative error instead of crashing?
+\item Is the preprocessing at inference identical to the preprocessing used in training?
+\item Is it recorded which model version answered each request?
+\item Could a teammate other than the author redeploy the service from its documentation?
 \end{itemize}
 \coursefooter
 \end{frame}
 
 \begin{frame}{Papers and materials}
 \readinglist{
-\href{https://flask.palletsprojects.com/en/stable/}{Flask documentation};\
-\href{https://docs.streamlit.io/}{Streamlit documentation};\
-\href{https://12factor.net/}{The Twelve-Factor App};\
-\href{https://research.google/pubs/pub46555/}{Sculley et al., Hidden Technical Debt in Machine Learning Systems};\
-\href{https://www.oreilly.com/library/view/practical-mlops/9781098103002/}{Practical MLOps}.
+\fontsize{6.8}{8.2}\selectfont
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begin{itemize}\setlength{\itemsep}{1pt}
+\item Sculley, D., Holt, G., Golovin, D., Davydov, E., Phillips, T., Ebner, D., Chaudhary, V., Young, M., Crespo, J.-F., Dennison, D. (2015). Hidden technical debt in machine learning systems. \emph{Advances in Neural Information Processing Systems}, 28, 2503--2511.
+\item Breck, E., Cai, S., Nielsen, E., Salib, M., Sculley, D. (2017). The ML test score: A rubric for ML production readiness and technical debt reduction. \emph{Proceedings of the IEEE International Conference on Big Data}, 1123--1132.
+\item Paleyes, A., Urma, R.-G., Lawrence, N.\,D. (2022). Challenges in deploying machine learning: A survey of case studies. \emph{ACM Computing Surveys}, 55(6), 114:1--114:29.
+\end{itemize}
+\column{0.5\textwidth}
+\begin{itemize}\setlength{\itemsep}{1pt}
+\item Gift, N., Deza, A. (2021). \emph{Practical MLOps}. O'Reilly.
+\item Wiggins, A. (2017). \href{https://12factor.net/}{The Twelve-Factor App}.
+\item Documentation: \href{https://flask.palletsprojects.com/en/stable/}{Flask}; \href{https://docs.streamlit.io/}{Streamlit}.
+\end{itemize}
+\end{columns}
 }
 \coursefooter
 \end{frame}
 
-\classclosingframe
-{\begin{itemize}
-\item A served model is a small software system: an interface, a preprocessing contract, and an operational surface, not just a `.pkl` file.
-\item Flask and Streamlit solve complementary problems: programmable endpoints versus human-facing presentation.
-\item The gaps in this course's demo services (validation, versioning, observability) are not oversights; they are exactly what the MLOps block exists to close.
-\end{itemize}}
-{Project teams should now be able to point at their own model artifact and describe, concretely, how it would be called, by whom, and what could go wrong.}
-{Class 21: Intervention Cybertec opens the MLOps block, moving from this course's own demo services into full software engineering practice for data products.}
-{The Data-Driven block ends where the MLOps block begins: at the boundary where a model becomes a system other people depend on.}
+\begin{frame}{Take-away message}
+\vfill
+\centering
+\begin{tikzpicture}
+\node[fill=courseice, draw=courseblue, thick, rounded corners=4pt, inner sep=10pt, text width=0.78\textwidth, align=center, font=\large] {A served model is a software system, not a \texttt{.pkl} file:\\[0.3em] it needs its exact preprocessing, validated inputs,\\ informative responses, and a record of every prediction.};
+\end{tikzpicture}
+
+\vfill
+{\Large\bfseries\color{courseblue} Thank you for your attention.}
+
+\vspace{0.4em}
+{\small\color{coursegray} This concludes the Data-Driven block. Next: Class 21 --- Cybertec (invited talk), opening the MLOps block.}
+\vfill
+\coursefooter
+\end{frame}
 
 \end{document}
