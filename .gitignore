@@ -25,3 +25,6 @@ __pycache__/
 .cursor/
 .roo/
 .aider*
+
+# Runtime logs (e.g. serving/fraud_api.py)
+logs/
