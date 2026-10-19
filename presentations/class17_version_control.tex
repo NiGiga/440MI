@@ -1,4 +1,5 @@
 \input{common}
+\usepackage{amssymb}
 
 \title{Class 17: Version Control with Git}
 \author{\coursename}
@@ -10,42 +11,22 @@
 
 \begin{frame}{Agenda}
 \begin{itemize}
-\item Why version control matters for a growing modeling codebase, and soon, a team project.
-\item Git fundamentals: commits, history, and diffs.
-\item Branching and merging, including conflicts.
-\item Remotes: push, pull, and collaborating through GitHub.
+\item Why version control is required for a growing modeling codebase and a team project.
+\item Git fundamentals: commits, history, and differences between versions.
+\item Branching and merging, including conflict resolution.
+\item Remotes: pushing, pulling, and collaborating through GitHub.
 \item Pull requests and code review as a team practice.
-\item What never belongs in a commit.
+\item What must never be committed.
 \end{itemize}
 \coursefooter
 \end{frame}
-
-\begin{frame}{Learning goals}
-\learninggoals{
-\begin{itemize}
-\item Initialize and use a Git repository for day-to-day modeling work.
-\item Write commits that form a usable, reviewable history.
-\item Branch to isolate risky or exploratory changes, and resolve a merge conflict without losing work.
-\item Collaborate through a shared remote using pull requests and code review.
-\item Recognize what belongs in `.gitignore` and what should never be committed at all.
-\end{itemize}
-}
-\coursefooter
-\end{frame}
-
-\coursecontextframe
-{Getting code, notebooks, and a growing project under reliable, reviewable version control.}
-{Class 16 tracked which model and hyperparameters won. This class tracks the code and history behind every one of those runs, and builds the habits the team project (Classes 32-34) will require.}
-{In the fraud case, version control tracks changes to the scoring pipeline, notebooks, and Streamlit app as they evolve across the course.}
-{In the pasteurization case, it tracks changes to the synthetic sensor generator, streaming logic, and dashboard the same way.}
-{The course thread moves from individually tracked experiments to a shared, reviewable codebase -- the foundation the rest of the MLOps block builds on.}
 
 \begin{frame}{Why version control, and why now}
 \begin{itemize}
-\item Every prior class produced code that changed: notebooks, a Streamlit app, feature pipelines.
-\item Without version control, ``which version produced this result'' is a guess, not an answer.
-\item Git gives every experiment, threshold choice, and interface change a traceable history.
-\item This is a practical habit to build now, before project work in Classes 32-34 makes it unavoidable.
+\item Every previous class produced code that changed over time: notebooks, a Streamlit application, feature pipelines.
+\item Without version control, the question ``which version produced this result?'' cannot be answered reliably.
+\item Git gives every experiment, threshold choice, and interface change a traceable history; it complements the experiment tracking of Class 16, which records runs but not the code that produced them.
+\item The practice must be established now, before the team project (Classes 32--34) makes it indispensable.
 \end{itemize}
 \coursefooter
 \end{frame}
@@ -61,23 +42,59 @@ git log --oneline
 git diff
 \end{lstlisting}
 \begin{itemize}
-\item A commit is a snapshot with a message, an author, and a parent -- together they form a history, not just a backup.
-\item `git diff` and `git log` turn ``what changed, and why'' into an answerable question instead of a guess.
+\item A commit is a snapshot of the project together with a message, an author, a timestamp, and a reference to its parent commit(s); it is identified by a hash of this content.
+\item The commits form a directed acyclic graph: the history. \texttt{git log} traverses it, and \texttt{git diff} shows the difference between two snapshots.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Where a change lives: the four locations}
+\centering
+\begin{tikzpicture}[font=\footnotesize, box/.style={flowbox, minimum width=2.4cm, minimum height=1.1cm}]
+\node[box] (wt) at (0,0) {Working tree\\\scriptsize files being edited};
+\node[box] (ix) at (3.6,0) {Staging area\\\scriptsize (index)};
+\node[box] (lr) at (7.2,0) {Local repository\\\scriptsize commit history};
+\node[accentbox, minimum width=2.4cm, minimum height=1.1cm] (rr) at (10.8,0) {Remote repository\\\scriptsize GitHub};
+\draw[arrow] ([yshift=0.25cm]wt.east) -- node[above, font=\scriptsize\ttfamily] {add} ([yshift=0.25cm]ix.west);
+\draw[arrow] ([yshift=0.25cm]ix.east) -- node[above, font=\scriptsize\ttfamily] {commit} ([yshift=0.25cm]lr.west);
+\draw[arrow] ([yshift=0.25cm]lr.east) -- node[above, font=\scriptsize\ttfamily] {push} ([yshift=0.25cm]rr.west);
+\draw[arrow] ([yshift=-0.25cm]rr.west) -- node[below, font=\scriptsize\ttfamily] {fetch} ([yshift=-0.25cm]lr.east);
+\draw[arrow] (lr.south) -- ++(0,-0.7) -| node[pos=0.25, below, font=\scriptsize\ttfamily] {checkout / switch} (wt.south);
+\draw[arrow, dashed, coursegold] (rr.north) -- ++(0,0.55) -| node[pos=0.25, above, font=\scriptsize\ttfamily] {pull = fetch + merge} (wt.north);
+\end{tikzpicture}
+\vspace{0.6em}
+\begin{itemize}\footnotesize
+\item \texttt{git status} reports the differences between the working tree, the staging area, and the last commit.
+\item \texttt{git diff} compares the working tree with the staging area; \texttt{git diff -{}-staged} compares the staging area with the last commit.
+\item Only committed changes become part of the history; only pushed commits are visible to the team.
 \end{itemize}
 \coursefooter
 \end{frame}
 
 \begin{frame}{What makes a good commit}
-\begin{itemize}
-\item Small and atomic: one logical change per commit, not a day's worth of edits at once.
-\item A message that explains why, not just what -- the diff already shows what changed.
-\item Committed often enough that `git log` reads like a story, not a single ``final version'' checkpoint.
-\item Working code at each commit, where practical, so history stays useful for debugging and rollback.
+\begin{itemize}\footnotesize
+\item \textbf{Atomic:} one logical change per commit. \textbf{Explanatory:} the message states why; the difference already shows what.
+\item \textbf{Frequent and consistent:} the history documents the evolution of the project, and each commit leaves the code in a working state where practical.
 \end{itemize}
+\vspace{0.4em}
+\begingroup\footnotesize
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{3.6cm} >{\raggedright\arraybackslash}X}
+\bfseries Uninformative message & \bfseries Informative message \\
+\toprule
+\texttt{update} & \texttt{Use cost-based threshold (0.06) in fraud app} \\
+\texttt{fix} & \texttt{Fit scaler on training split only to avoid leakage} \\
+\texttt{final version} & \texttt{Add rolling-mean feature for temperature (w = 10)} \\
+\texttt{changes in notebook} & \texttt{Replace label-encoded chi2 by test of independence} \\
+\bottomrule
+\end{tabularx}
+\par\endgroup
+\vspace{0.4em}
+{\scriptsize Convention: a short summary line in the imperative mood ($\lesssim 50$ characters), optionally followed by a blank line and a body explaining the motivation.\par}
 \coursefooter
 \end{frame}
 
-\begin{frame}[fragile]{Branching to try an idea safely}
+\begin{frame}[fragile]{Branching to test an idea safely}
 \begin{lstlisting}[style=coursepython,language=bash]
 git checkout -b experiment/cost-sensitive-threshold
 git add .
@@ -86,27 +103,87 @@ git push -u origin experiment/cost-sensitive-threshold
 # compare results, then merge or discard the branch
 \end{lstlisting}
 \begin{itemize}
-\item A branch isolates a risky or exploratory change so `main` keeps the last known-good model and interface.
-\item If the experiment does not beat the baseline, the branch can simply be discarded -- no cleanup, no regret.
+\item A branch is a movable reference to a commit; it isolates an exploratory change, so that \texttt{main} keeps the last validated model and interface.
+\item If the experiment does not outperform the baseline, the branch is discarded without affecting \texttt{main}.
 \end{itemize}
 \coursefooter
 \end{frame}
 
-\begin{frame}[fragile]{Merging, and when it goes wrong}
+\begin{frame}{Branches and merges as a commit graph}
+\centering
+\begin{tikzpicture}[font=\footnotesize, c/.style={circle, draw=courseblue, fill=courseice, thick, minimum size=0.75cm, inner sep=0pt}, e/.style={circle, draw=coursegold, fill=coursegold!20, thick, minimum size=0.75cm, inner sep=0pt}]
+\node[c] (a) at (0,0) {A};
+\node[c] (b) at (1.8,0) {B};
+\node[c] (c) at (3.6,0) {C};
+\node[c] (f) at (7.2,0) {F};
+\node[e] (d) at (3.6,-1.5) {D};
+\node[e] (e) at (5.4,-1.5) {E};
+\node[c, fill=courseblue!30] (m) at (9.0,0) {M};
+\draw[arrow] (b) -- (a); \draw[arrow] (c) -- (b); \draw[arrow] (f) -- (c);
+\draw[arrow, coursegold] (d) -- (b); \draw[arrow, coursegold] (e) -- (d);
+\draw[arrow] (m) -- (f); \draw[arrow, coursegold] (m) -- (e);
+\node[draw=courseblue, rounded corners=2pt, font=\scriptsize\ttfamily, above=0.25cm of m] (mm) {main};
+\draw[->, courseblue] (mm) -- (m);
+\node[draw=coursegold, rounded corners=2pt, font=\scriptsize\ttfamily, below=0.25cm of e] (bb) {experiment/cost-sensitive-threshold};
+\draw[->, coursegold] (bb) -- (e);
+\node[font=\scriptsize, text=coursegray, right=0.15cm of m, align=left] {merge commit:\\two parents (F, E)};
+\end{tikzpicture}
+\vspace{0.6em}
+\begin{itemize}\footnotesize
+\item Each commit points to its parent(s); arrows go backwards in time. A branch name is only a reference to the latest commit of that line of work.
+\item The experiment branched at B; meanwhile \texttt{main} advanced to C and F. The merge commit M combines both lines and has two parents.
+\item Discarding the experiment instead would simply delete the reference \texttt{experiment/\dots}: commits D and E would no longer be reachable from any branch.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}[fragile]{Merging and conflicts}
 \begin{lstlisting}[style=coursepython,language=bash]
 git checkout main
 git merge experiment/cost-sensitive-threshold
 # CONFLICT (content): Merge conflict in scoring.py
 \end{lstlisting}
 \begin{itemize}
-\item Git marks the conflicting region with `<<<<<<<`, `=======`, and `>>>>>>>` -- it needs a human decision, not a tool trick.
-\item Resolving a conflict means choosing (or combining) the intended behavior, then committing the resolution.
-\item Merge conflicts are expected, not exceptional; resolving them is part of collaborative engineering, not a sign of failure.
+\item A conflict arises when both branches modified the same region of a file. Git marks it with \texttt{<{}<{}<{}<{}<{}<{}<}, \texttt{=======}, and \texttt{>{}>{}>{}>{}>{}>{}>}; resolving it requires a decision about the intended behavior.
+\item The resolution consists of choosing or combining the two versions and committing the result, which becomes a merge commit with two parents.
+\item Conflicts are an expected part of collaborative development, not an indication of failure.
 \end{itemize}
 \coursefooter
 \end{frame}
 
-\begin{frame}[fragile]{Remotes and collaborating through GitHub}
+\begin{frame}[fragile]{A conflict in practice: the decision threshold}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\textbf{\footnotesize Conflict in \texttt{scoring.py}}
+\begin{lstlisting}[style=coursepython]
+<<<<<<< HEAD
+THRESHOLD = 0.5   # library default
+=======
+THRESHOLD = 0.06  # cost-based (Class 16)
+>>>>>>> experiment/cost-sensitive-threshold
+\end{lstlisting}
+\textbf{\footnotesize Resolution}
+\begin{lstlisting}[style=coursepython]
+# c_FN = 100 c_FP; selected on the
+# validation split (Class 16)
+THRESHOLD = 0.06
+\end{lstlisting}
+\column{0.48\textwidth}
+\begin{itemize}\footnotesize
+\item \texttt{HEAD} is the version of the current branch (\texttt{main}); the second block comes from the branch being merged.
+\item Git cannot decide which threshold is correct: the choice is a modeling decision, justified by the cost analysis.
+\item The resolution removes the markers, documents the reason, and is committed:
+\end{itemize}
+\vspace{-0.3em}
+\begin{lstlisting}[style=coursepython,language=bash]
+git add scoring.py
+git commit -m "Merge cost-based threshold"
+\end{lstlisting}
+\end{columns}
+\coursefooter
+\end{frame}
+
+\begin{frame}[fragile]{Remotes and collaboration through GitHub}
 \begin{lstlisting}[style=coursepython,language=bash]
 git remote -v
 git push origin main
@@ -114,81 +191,135 @@ git pull origin main
 git fetch
 \end{lstlisting}
 \begin{itemize}
-\item A remote is a shared copy of the repository -- GitHub, in this course's case.
-\item `push` sends local commits to the remote; `pull` fetches and merges the remote's new commits into the local branch.
-\item Pulling before starting new work avoids diverging unnecessarily from teammates.
+\item A remote is a shared copy of the repository; in this course, hosted on GitHub.
+\item \texttt{push} sends local commits to the remote; \texttt{fetch} retrieves new remote commits; \texttt{pull} performs a fetch followed by a merge into the local branch.
+\item Pulling before starting new work limits unnecessary divergence from the rest of the team.
 \end{itemize}
 \coursefooter
 \end{frame}
 
 \begin{frame}{Pull requests and code review}
 \begin{itemize}
-\item A pull request is a review checkpoint before code reaches a shared branch -- exactly where a teammate can catch a silent behavior change.
-\item Small pull requests are easier to review honestly than large ones.
-\item Review comments are about the code and the decision behind it, not the author.
-\item For the practical project, agree on a branching convention (for example, one feature branch per teammate or per task) before the first commit, not after the first conflict.
+\item A pull request is a review checkpoint before code reaches a shared branch, where a teammate can detect an unintended change of behavior.
+\item Small pull requests can be reviewed thoroughly; large ones tend to be approved without real scrutiny.
+\item Review comments address the code and the decisions behind it, not its author.
+\item For the team project, a branching convention (e.g.\ one feature branch per task) must be agreed before the first commit, not after the first conflict.
 \end{itemize}
 \coursefooter
 \end{frame}
 
-\begin{frame}[fragile]{What never belongs in a commit}
+\begin{frame}[fragile]{What must never be committed}
 \begin{lstlisting}[style=coursepython,language=bash]
 /.ipynb_checkpoints
 /venv
 .DS_Store
 
-# Python caches
 __pycache__/
 *.py[cod]
+*.aux
+*.log
 \end{lstlisting}
 \begin{itemize}
-\item This is this repository's own `.gitignore`: build artifacts, virtual environments, and editor files never need a history.
-\item Secrets, API keys, and credentials never belong in a commit -- not even one that gets ``fixed'' later, since the history remains.
-\item Large trained artifacts are a judgment call: sometimes worth committing, sometimes better handled outside Git entirely.
+\item Excerpt of this repository's \texttt{.gitignore}: environments, caches, and build artifacts are regenerated and need no history.
+\item Secrets and credentials must never be committed: a later commit does not remove them from the history, so a leaked credential must be revoked.
+\item Large trained artifacts are often better stored outside Git, e.g.\ in a model registry (Class 20).
 \end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}[fragile]{Handling secrets correctly}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\textbf{\footnotesize Incorrect: secret in the code}
+\begin{lstlisting}[style=coursepython]
+run = neptune.init_run(
+    project="team/project",
+    api_token="a1b2c3d4...",  # leaked
+)
+\end{lstlisting}
+\textbf{\footnotesize Correct: secret in the environment}
+\begin{lstlisting}[style=coursepython]
+import os
+token = os.environ["NEPTUNE_API_TOKEN"]
+run = neptune.init_run(
+    project="team/project",
+    api_token=token,
+)
+\end{lstlisting}
+\column{0.48\textwidth}
+\begin{itemize}\footnotesize
+\item The secret is stored outside the repository, e.g.\ exported in the shell or kept in a local \texttt{.env} file listed in \texttt{.gitignore}.
+\item The code documents which variable is required, never its value.
+\item If a secret has been committed: (1) revoke it immediately, (2) issue a new one, (3) optionally rewrite the history (e.g.\ \texttt{git filter-repo}); once pushed, the secret must be considered compromised regardless of the rewrite.
+\end{itemize}
+\end{columns}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Guided practice}
+\begingroup\footnotesize
+Work in pairs on a shared GitHub repository (about 30 minutes):
+\par\endgroup
+\vspace{0.3em}
+\begin{enumerate}\footnotesize
+\item Student A creates the repository with a \texttt{README.md}, a \texttt{.gitignore}, and a file \texttt{scoring.py} containing \texttt{THRESHOLD = 0.5}; student B clones it.
+\item Each student creates a branch: A sets \texttt{THRESHOLD = 0.3}, B sets \texttt{THRESHOLD = 0.06}, each with an informative commit message.
+\item A pushes and merges first through a pull request reviewed by B.
+\item B pulls \texttt{main}, merges it into the own branch, and resolves the resulting conflict, justifying the chosen value in the commit message.
+\item B opens a pull request; A reviews it and merges.
+\item Both inspect the result with \texttt{git log -{}-oneline -{}-graph} and identify the merge commits.
+\end{enumerate}
+\vspace{0.3em}
+{\scriptsize Deliverable: the URL of the repository; its commit graph must show two branches, one resolved conflict, and two reviewed pull requests.\par}
 \coursefooter
 \end{frame}
 
 \begin{frame}{Repository connections}
 \repoactivity{
 \begin{itemize}
-\item This repository's own commit history and `.gitignore` are a live example of the ideas in this class.
-\item `notebooks/`, `streamlit/`, and `pasteurization/` are exactly the kind of fast-changing code that benefits from small, frequent commits.
-\item The practical project (Classes 32-34) is where each team applies this to its own shared repository.
+\item The commit history and the \texttt{.gitignore} of this repository are a working example of the practices of this class.
+\item \texttt{notebooks/}, \texttt{streamlit/}, and \texttt{pasteurization/} contain rapidly changing code that benefits from small, frequent commits.
+\item In the team project (Classes 32--34), each team applies these practices to its own shared repository.
 \end{itemize}
 }
-\coursefooter
-\end{frame}
-
-\begin{frame}{Discussion prompt}
-\begin{block}{Question}
-Two teammates each push a working fix for the same bug, on different branches, without talking first. What went wrong before the merge conflict even happened?
-\end{block}
-\begin{itemize}
-\item This separates ``we can merge this'' from ``we should have coordinated before writing it.''
-\item It motivates lightweight team conventions (issue assignment, small pull requests, short-lived branches) over relying on Git to resolve coordination problems after the fact.
-\end{itemize}
 \coursefooter
 \end{frame}
 
 \begin{frame}{Papers and materials}
 \readinglist{
-\href{https://git-scm.com/book/en/v2}{Pro Git (free online book)};\
-\href{https://docs.github.com/en/pull-requests}{GitHub documentation on pull requests};\
-\href{https://nvie.com/posts/a-successful-git-branching-model/}{Driessen, A Successful Git Branching Model};\
-\href{https://www.atlassian.com/git/tutorials/using-branches/merge-conflicts}{Atlassian guide to resolving merge conflicts}.
+\fontsize{6.8}{8.2}\selectfont
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begin{itemize}\setlength{\itemsep}{1pt}
+\item Chacon, S., Straub, B. (2014). \emph{Pro Git}, 2nd ed. Apress. \href{https://git-scm.com/book/en/v2}{git-scm.com/book}.
+\item Driessen, V. (2010). \href{https://nvie.com/posts/a-successful-git-branching-model/}{A successful Git branching model}.
+\item Bird, C., Rigby, P.\,C., Barr, E.\,T., Hamilton, D.\,J., German, D.\,M., Devanbu, P. (2009). The promises and perils of mining Git. \emph{Proceedings of the 6th IEEE International Working Conference on Mining Software Repositories}, 1--10.
+\end{itemize}
+\column{0.5\textwidth}
+\begin{itemize}\setlength{\itemsep}{1pt}
+\item Bacchelli, A., Bird, C. (2013). Expectations, outcomes, and challenges of modern code review. \emph{Proceedings of the 35th International Conference on Software Engineering (ICSE)}, 712--721.
+\item GitHub documentation: \href{https://docs.github.com/en/pull-requests}{pull requests}.
+\item Atlassian Git tutorials: \href{https://www.atlassian.com/git/tutorials/using-branches/merge-conflicts}{resolving merge conflicts}.
+\end{itemize}
+\end{columns}
 }
 \coursefooter
 \end{frame}
 
-\classclosingframe
-{\begin{itemize}
-\item Version control turns ``which version produced this'' from a guess into an answer.
-\item Branches isolate risk; pull requests turn merging into a review checkpoint, not a surprise.
-\item What never gets committed (secrets, build artifacts) matters as much as what does.
-\end{itemize}}
-{Teams should set up a shared repository with an agreed branching convention before their first project commit -- not after the first conflict.}
-{Class 18 moves from a fixed, versioned snapshot to a model that must keep working as new data keeps arriving: online learning and concept drift.}
-{A reviewable history is what makes every later engineering practice in this course -- CI/CD, rollback, monitoring -- possible in the first place.}
+\begin{frame}{Take-away message}
+\vfill
+\centering
+\begin{tikzpicture}
+\node[fill=courseice, draw=courseblue, thick, rounded corners=4pt, inner sep=10pt, text width=0.78\textwidth, align=center, font=\large] {Version control makes every result traceable\\ to the code that produced it:\\[0.3em] commit small and often, isolate experiments in branches,\\ review before merging, and never commit secrets.};
+\end{tikzpicture}
+
+\vfill
+{\Large\bfseries\color{courseblue} Thank you for your attention.}
+
+\vspace{0.4em}
+{\small\color{coursegray} Next: Class 18 --- online machine learning and concept drift.}
+\vfill
+\coursefooter
+\end{frame}
 
 \end{document}
