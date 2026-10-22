@@ -1,7 +1,7 @@
 \input{common}
 \usepackage{amssymb}
 
-\title{Class 16: Modeling, Experiment Tracking, Evaluation, and Decision-Making}
+\title{Class 18: Modeling, Experiment Tracking, Evaluation, and Decision-Making}
 \author{\coursename}
 \date{}
 
@@ -57,7 +57,7 @@ Probabilistic models & Appropriate when uncertainty and conditional structure mu
 \addlinespace[0.3em]
 Neural networks & Suited to large unstructured datasets and highly non-linear problems. \\
 \addlinespace[0.3em]
-Online models & Updated incrementally as new observations arrive (Class 18). \\
+Online models & Updated incrementally as new observations arrive (Class 19). \\
 \bottomrule
 \end{tabularx}
 \coursefooter
@@ -67,7 +67,7 @@ Online models & Updated incrementally as new observations arrive (Class 18). \\
 \begin{itemize}
 \item \textbf{Fraud detection:} random forest or gradient boosting, followed by the choice of a decision threshold.
 \item \textbf{Wine quality regression:} gradient boosting tuned by grid search and tracked in Neptune (\texttt{Class7\_Model\_Tuning\_Neptune.ipynb}).
-\item \textbf{Pasteurization forecasting:} incremental regression, treated in Class 18.
+\item \textbf{Pasteurization forecasting:} incremental regression, treated in Class 19.
 \item \textbf{Industrial anomaly detection:} useful only if the cost of an alert and the acceptable false-positive rate are defined in advance.
 \end{itemize}
 \coursefooter
@@ -219,7 +219,7 @@ artifacts/model & \texttt{best\_gb\_model.pkl} (serialized estimator) \\
 \vspace{0.5em}
 \begin{itemize}\footnotesize
 \item Mean squared error (MSE) and coefficient of determination ($R^2$) are computed once on the test split, after selection.
-\item The pattern is tool-independent: MLflow, Weights \& Biases, or an internal registry store the same record. The serialized artifact is the bridge to deployment (Class 20).
+\item The pattern is tool-independent: MLflow, Weights \& Biases, or an internal registry store the same record. The serialized artifact is the bridge to deployment (Class 30).
 \end{itemize}
 \coursefooter
 \end{frame}
@@ -267,7 +267,7 @@ summarized over all thresholds by the area under the precision--recall curve (PR
 
 \begin{frame}{The fraud dataset at a glance}
 \centering
-\includegraphics[width=\textwidth]{images/class16_fraud_overview.pdf}
+\includegraphics[width=\textwidth]{images/class18_fraud_overview.pdf}
 
 \vspace{0.3em}
 \begin{itemize}\footnotesize
@@ -282,7 +282,7 @@ summarized over all thresholds by the area under the precision--recall curve (PR
 \begin{columns}[T]
 \column{0.42\textwidth}
 \centering
-\includegraphics[width=0.95\linewidth]{images/class16_confusion_matrix.pdf}
+\includegraphics[width=0.95\linewidth]{images/class18_confusion_matrix.pdf}
 
 {\scriptsize Test split (56{,}962 transactions), best random forest of the grid search in \texttt{Credit\_Card\_Fraud\_Detection\_Solution.ipynb}.\par}
 \column{0.56\textwidth}
@@ -339,7 +339,7 @@ The threshold that turns a probability into a decision is a design choice derive
 
 \begin{frame}{Choosing the threshold: a cost analysis}
 \centering
-\includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{images/class16_threshold_cost.pdf}
+\includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{images/class18_threshold_cost.pdf}
 
 \vspace{0.2em}
 \begin{itemize}\footnotesize
@@ -439,7 +439,7 @@ The threshold that turns a probability into a decision is a design choice derive
 {\Large\bfseries\color{courseblue} Thank you for your attention.}
 
 \vspace{0.4em}
-{\small\color{coursegray} Next: Class 17 --- version control with Git.}
+{\small\color{coursegray} Next: Class 19 --- online machine learning and concept drift.}
 \vfill
 \coursefooter
 \end{frame}

@@ -1,7 +1,7 @@
 \input{common}
 \usepackage{amssymb}
 
-\title{Class 19: Lab --- Streaming Pasteurization Sensors}
+\title{Class 20: Practical Lab --- Online Learning, Concept Drift, and Streaming Sensors}
 \author{\coursename}
 \date{}
 
@@ -105,7 +105,7 @@ PROD_RANGES = {
 
 \begin{frame}{Exercise 1: expected result}
 \centering
-\includegraphics[width=0.82\textwidth,height=0.58\textheight,keepaspectratio]{images/class19_expected_batch.pdf}
+\includegraphics[width=0.82\textwidth,height=0.58\textheight,keepaspectratio]{images/class20_expected_batch.pdf}
 
 \vspace{0.2em}
 \begin{itemize}\footnotesize
@@ -125,7 +125,7 @@ def simulate_batch(bid, start_time=0.0):
     return df, t
 \end{lstlisting}
 \begin{itemize}
-\item \texttt{dTdt} is the backward finite difference $(T_t - T_{t-1})/\Delta t$, the rate-of-change feature constructed in Class 15.
+\item \texttt{dTdt} is the backward finite difference $(T_t - T_{t-1})/\Delta t$, the rate-of-change feature constructed in Class 16.
 \item It is causal: it uses only the current and the previous sample, so it can also be computed online on the stream.
 \end{itemize}
 \coursefooter
@@ -264,7 +264,7 @@ with requests.get(URL, stream=True, timeout=10) as r:
 \coursefooter
 \end{frame}
 
-\begin{frame}[fragile]{Exercise 4: detect an injected drift (Class 18)}
+\begin{frame}[fragile]{Exercise 4: detect an injected drift (Class 19)}
 \begin{lstlisting}[style=coursepython, basicstyle=\ttfamily\scriptsize]
 import requests, pandas as pd
 from river import linear_model, optim, preprocessing, drift
@@ -345,7 +345,7 @@ Report the detection delay and every alarm raised before the injection. In ten t
 {\Large\bfseries\color{courseblue} Thank you for your attention.}
 
 \vspace{0.4em}
-{\small\color{coursegray} Next: Class 20 --- model deployment and prediction serving.}
+{\small\color{coursegray} Next: Class 21 --- guest intervention: Cybertec; opening the MLOps block.}
 \vfill
 \coursefooter
 \end{frame}
