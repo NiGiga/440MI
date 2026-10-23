@@ -43,12 +43,12 @@ The materials in this repository follow a 36-class sequence organized in three m
 
 13. Data types — tabular, time series, spectral/signal, image
 14. Structured / semi-structured / unstructured data, encoding, and embeddings
-15. Feature engineering (cleaning, curation, selection)
-16. ML modeling, experiment tracking, evaluation, and decision-making
+15. Encoding and embedding practice with the prepared Titanic dataset
+16. Feature engineering (cleaning, curation, missing values, construction, and selection)
 17. Version control with Git
-18. Online machine learning and concept drift
-19. Streaming sensor practice
-20. Model deployment and prediction serving
+18. ML modeling, experiment tracking, evaluation, and decision-making
+19. Online machine learning and concept drift
+20. Online learning, concept drift, and streaming practice
 
 ### III. MLOps (Classes 21-36)
 
@@ -61,15 +61,17 @@ The materials in this repository follow a 36-class sequence organized in three m
 27. Agile toolkit practice
 28. MLOps foundations
 29. MLOps practice and continuous training
-30. Good practices (Docker, CI/CD)
-31. Continuous monitoring and scalability
-32. Practical project — brainstorm and definitions
-33. Intervention: Sbroiavacca (guest session)
-34. Project requirements and development plan
-35. Presentation of proposals, part 1
-36. Presentation of proposals, part 2
+30. Model deployment and prediction serving
+31. Good practices (Docker, CI/CD)
+32. Continuous monitoring and scalability
+33. Practical project — brainstorm and definitions
+34. Intervention: Sbroiavacca (guest session)
+35. Project requirements and development plan
+36. Proposal presentations and course closing (merged session)
 
-The class slides live in [presentations/](presentations/), with both `.tex` sources and compiled PDFs. Classes 21, 24, and 33 are external guest sessions with material provided by the speakers, not slide decks from this repository. Classes 29 and 31 flag a practical component that does not yet have runnable code in this repository (a continuous-training pipeline and a monitoring/scalability exercise, respectively) — good candidates for a separate project or submodule.
+The class slides live in [presentations/](presentations/), with both `.tex` sources and compiled PDFs. Classes 21, 24, and 34 are external guest sessions with material provided by the speakers, not slide decks from this repository. Classes 29 and 32 flag practical components that do not yet have runnable exercises in this repository (continuous training and monitoring/scalability, respectively).
+
+Class 15 has a [student activity brief](documents/Class15_Encoding_Embedding_Activity.pdf), a [worked notebook](notebooks/Class15_Encoding_Embedding_Solution.ipynb), and a [prepared Titanic dataset](notebooks/Class15_Titanic_Imputed.csv). The activity uses all 891 rows for encoding and chi-squared/Spearman exploratory diagnostics; it does not evaluate a predictive model. Class 16 returns to imputation and the broader feature-engineering workflow, and Class 18 introduces the train/test split for model evaluation.
 
 ## Repository Map
 
