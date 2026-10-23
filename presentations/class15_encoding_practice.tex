@@ -23,29 +23,28 @@ fare & Passenger fare & Numeric feature \\
 sibsp & Number of siblings and spouses aboard & Numeric feature \\
 parch & Number of parents and children aboard & Numeric feature \\
 survived & Outcome: 0 = did not survive; 1 = survived & Target \\
-partition & Marks each row as train or test & Split marker; not a feature \\
 \bottomrule
 \end{tabularx}
 
 \vspace{0.5em}
 \begin{alertblock}{Scope of the supplied CSV}
-This prepared file contains eight passenger attributes plus the train/test marker. It is a selected, imputed subset for the activity; other fields from the full Titanic dataset are not included.
+This prepared file contains eight passenger attributes for all 891 passengers. It is a selected, imputed subset for this exploratory activity; other fields from the full Titanic dataset are not included.
 \end{alertblock}
 \coursefooter
 \end{frame}
 
 \begin{frame}{Today's question: is this a useful representation?}
-\begin{itemize}
+\begin{enumerate}
 \item Build encodings for Titanic categories and inspect the resulting feature matrix.
 \item Explore how the categories relate to survival, without fitting a predictive model.
 \item Construct a PCA projection of passenger profiles grouped by embarkation port.
 \item Separate evidence about representation quality from evidence about model contribution.
-\end{itemize}
+\end{enumerate}
 \begin{block}{Prepared data}
-Use a prepared Titanic train/test split with missing feature values already handled for this exercise. Imputation choices are the focus of Class 16; the solution notebook shows the split-safe preparation used to create the fixture.
+Use all 891 rows in the prepared Titanic dataset for today's encoding and association explorations. No predictive model is evaluated here, so a train/test split is unnecessary. Imputation choices are the focus of Class 16. In Class 18, create the split before fitting any preprocessing for model evaluation.
 \end{block}
 \vspace{0.2em}
-\centering\small\href{../notebooks/Class15_Titanic_Imputed.csv}{Download the prepared Titanic train/test fixture (CSV)}
+\centering\small\href{../notebooks/Class15_Titanic_Imputed.csv}{Download the prepared Titanic dataset (CSV)}
 \coursefooter
 \end{frame}
 
@@ -90,28 +89,37 @@ One category becomes one column. The active column records the observed category
 \end{block}
 \column{0.48\textwidth}
 \begin{alertblock}{What to check?}
-Fit columns on training data. Confirm expected levels and document how an unseen value is handled at transform time.
+Fit columns on the activity dataset. Confirm expected levels and document how an unseen value is handled at transform time.
 \end{alertblock}
 \end{columns}
 \coursefooter
 \end{frame}
 
+\newcommand{\qcard}[7]{%
+\begin{minipage}[t]{0.485\textwidth}
+\colorbox{courseblue}{\parbox{\dimexpr\linewidth-2\fboxsep}{\color{white}\textbf{#1}\hfill\small #2}}\\[-0.1em]
+\colorbox{courseice}{\parbox{\dimexpr\linewidth-2\fboxsep}{\scriptsize
+{\color{coursegold}\textbf{How}} \ \texttt{#3}\\[0.2em]
+{\color{coursegold}\textbf{Evidence}} \ #4\\[0.2em]
+{\color{coursegold}\textbf{Says}} \ #5\\[0.2em]
+{\color{coursegreen}\textbf{\char`\+\ Good}} \ #6\\[0.2em]
+{\color{red!70!black}\textbf{\char`\-\ Bad}} \ #7}}
+\end{minipage}}
+
+\newcommand{\qstrip}[3]{%
+\colorbox{courseblue}{\parbox{\dimexpr\textwidth-2\fboxsep}{\color{white}\footnotesize\textbf{Quality check}\hfill #1}}\\[-0.1em]
+\colorbox{courseice}{\parbox{\dimexpr\textwidth-2\fboxsep}{\footnotesize
+{\color{coursegreen}\textbf{\char`\+\ Good}} \ #2\\[0.2em]
+{\color{red!70!black}\textbf{\char`\-\ Bad}} \ #3}}}
+
 \begin{frame}{First evaluate representation quality}
-\small
-\begin{tabularx}{\textwidth}{>{\bfseries}l X X}
-\toprule
-Check & Evidence to collect & What it tells us \\
-\midrule
-Validity & Learned categories and output names & Expected levels are preserved \\
-Robustness & Transform a row with an unseen value & Behavior is documented \\
-Complexity & Output columns and matrix density & Size and sparsity are manageable \\
-Exploratory signal & Category counts and target rates & Group differences suggest a hypothesis \\
-\bottomrule
-\end{tabularx}
-\vspace{0.3em}
-\begin{alertblock}{Scope of this evidence}
-These checks assess the representation and describe the data; they do not establish predictive improvement.
-\end{alertblock}
+\centering
+\qcard{Validity}{Are the levels preserved?}{enc.get\_feature\_names\_out()}{Learned categories and output column names}{Expected levels are preserved}{\texttt{sex\_female, sex\_male, embarked\_C/Q/S}}{A missing level, or a stray \texttt{embarked\_nan} column}\hfill
+\qcard{Robustness}{Does an unseen value break it?}{OneHotEncoder(handle\_unknown="ignore")}{Transform a row with an unseen value}{Behavior is documented}{Unseen port \texttt{"X"} becomes an all-zero block, no error}{Crash at transform time, or the behavior is never checked}
+
+\vspace{0.6em}
+\qcard{Complexity}{Is the size manageable?}{Z.shape; Z.nnz / (n * p)}{Output columns and matrix density}{Size and sparsity are manageable}{8 columns for 3 features, mostly zeros}{An ID-like column with 891 levels gives 891 columns}\hfill
+\qcard{Exploratory signal}{Do groups differ?}{df.groupby("embarked").agg(...)}{Category counts and survival rates per group}{Group differences suggest a hypothesis}{C: 168 passengers, 55\% survived; S: 646, 34\%. Report counts with rates}{Claiming Q improves a model from a 77-passenger rate}
 \coursefooter
 \end{frame}
 
@@ -123,13 +131,11 @@ These checks assess the representation and describe the data; they do not establ
 \column{0.26\textwidth}
 \small
 \begin{block}{Read the chart}
-All ports appear in train, but their counts differ. Compare the survival rates while keeping those sample sizes in view.
+All ports appear in the dataset, but their counts differ. Compare the survival rates while keeping those sample sizes in view.
 \end{block}
 \end{columns}
 \vspace{0.3em}
-\begin{alertblock}{Interpretation}
-These are descriptive differences in this sample. They do not show that encoding improves held-out predictions.
-\end{alertblock}
+\qstrip{Exploratory signal \textbullet\ Validity}{All three ports present; counts shown beside rates (C 168, Q 77, S 646). Differences are read as a hypothesis.}{Comparing rates without sample sizes, or claiming the encoding improves held-out predictions.}
 \coursefooter
 \end{frame}
 
@@ -137,9 +143,7 @@ These are descriptive differences in this sample. They do not show that encoding
 \centering
 \includegraphics[width=0.91\textwidth,height=0.52\textheight,keepaspectratio]{figures/class15_association_heatmaps.pdf}
 \vspace{0.2em}
-\begin{alertblock}{Interpretation}
-Spearman $\rho$ shows signed rank association. Chi-squared colors show evidence against independence via $p$-values, not effect size. The panels are not directly comparable.
-\end{alertblock}
+\qstrip{Exploratory signal}{Spearman $\rho$ read as signed rank association; $\chi^2$ colors read as evidence against independence ($p$-values), each on its own scale.}{Comparing colors across panels, or treating a small $p$-value as effect size.}
 \coursefooter
 \end{frame}
 
@@ -147,7 +151,7 @@ Spearman $\rho$ shows signed rank association. Chi-squared colors show evidence 
 \begin{columns}[T]
 \column{0.64\textwidth}
 \centering
-\includegraphics[width=\linewidth,height=0.70\textheight,keepaspectratio]{figures/class15_port_profile_pca.pdf}
+\includegraphics[width=\linewidth,height=0.56\textheight,keepaspectratio]{figures/class15_port_profile_pca.pdf}
 \column{0.32\textwidth}
 \footnotesize
 \begin{itemize}
@@ -155,10 +159,9 @@ Spearman $\rho$ shows signed rank association. Chi-squared colors show evidence 
 \item Arrows: correlations of original features with PC1 and PC2.
 \item Similar directions suggest features that vary together in these profiles.
 \end{itemize}
-\begin{alertblock}{Scope}
-Two PCs explain 100\% here because there are only three centered profiles. This is exploratory, not evidence of predictive value.
-\end{alertblock}
 \end{columns}
+\vspace{0.3em}
+\qstrip{Complexity \textbullet\ Exploratory signal}{Profiles built without \texttt{survived}; arrows read as how features align with PC1 and PC2.}{Reading ``two PCs explain 100\%'' as predictive value: with three centered profiles it is guaranteed.}
 \coursefooter
 \end{frame}
 
@@ -204,9 +207,9 @@ Encoding changes how a model receives information; it does not create new inform
 
 \begin{frame}{How Class 18 will test contribution fairly}
 \begin{enumerate}
-\item Keep the same train/test split and the same downstream estimator.
+\item Create one stratified train/test split and keep it fixed across the comparisons.
 \item Compare a baseline without the feature, one-hot \texttt{embarked}, and any candidate embedding.
-\item Fit every learned transformation on training data only; evaluate once on the held-out test data.
+\item Fit every learned transformation on training data only; evaluate once on the held-out test data. Start from raw data, not this all-rows imputed activity fixture.
 \item Choose a suitable metric in advance (e.g., ROC AUC or balanced accuracy) and compare the change, not just one score.
 \item Repeat across folds or seeds if time permits; report uncertainty and added complexity.
 \end{enumerate}

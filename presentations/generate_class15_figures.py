@@ -34,10 +34,10 @@ plt.rcParams.update({
 })
 
 raw = pd.read_csv(DATA)
-train = raw.loc[raw["partition"] == "train"].copy()
+data = raw.copy()
 
-# A count-and-rate view of training category coverage and the univariate diagnostic.
-summary = train.groupby("embarked")["survived"].agg(["count", "mean"]).reindex(["C", "Q", "S"])
+# A count-and-rate view of category coverage and the univariate diagnostic across all rows.
+summary = data.groupby("embarked")["survived"].agg(["count", "mean"]).reindex(["C", "Q", "S"])
 fig, axes = plt.subplots(1, 2, figsize=(9.0, 3.6), gridspec_kw={"wspace": 0.48})
 ports = ["C", "Q", "S"]
 colors = [BLUE, GOLD, GREEN]
@@ -45,8 +45,8 @@ y = np.arange(len(ports))
 axes[0].barh(y, summary["count"], color=colors, height=0.58)
 axes[0].set_yticks(y, [f"{p}  ({int(summary.loc[p, 'count'])})" for p in ports])
 axes[0].invert_yaxis()
-axes[0].set_xlim(0, 540)
-axes[0].set_xlabel("Training passengers")
+axes[0].set_xlim(0, 700)
+axes[0].set_xlabel("Passengers in dataset")
 axes[0].set_title("Category coverage", loc="left")
 axes[0].grid(axis="x", color="#E5E7EB", linewidth=0.8)
 axes[0].set_axisbelow(True)
@@ -64,16 +64,16 @@ axes[1].grid(axis="x", color="#E5E7EB", linewidth=0.8)
 axes[1].set_axisbelow(True)
 for i, p in enumerate(ports):
     axes[1].text(rates.loc[p] + 1.4, i, f"{rates.loc[p]:.1f}%", va="center", color=GRAY, fontsize=9)
-fig.text(0.01, 0.01, "Training partition only · descriptive rates are not model-performance evidence", color=GRAY, fontsize=8)
+fig.text(0.01, 0.01, "All 891 passengers · descriptive rates are not model-performance evidence", color=GRAY, fontsize=8)
 fig.subplots_adjust(left=0.13, right=0.97, top=0.84, bottom=0.20)
 fig.savefig(OUT / "class15_embarked_diagnostics.pdf", bbox_inches="tight")
 plt.close(fig)
 
 # The same profile PCA used in the activity notebook, with original feature vectors.
-train["log_fare"] = np.log1p(train["fare"])
-train["family_size"] = train["sibsp"] + train["parch"] + 1
-train["is_female"] = (train["sex"] == "female").astype(int)
-profile = train.groupby("embarked").agg(
+data["log_fare"] = np.log1p(data["fare"])
+data["family_size"] = data["sibsp"] + data["parch"] + 1
+data["is_female"] = (data["sex"] == "female").astype(int)
+profile = data.groupby("embarked").agg(
     mean_age=("age", "mean"),
     mean_log_fare=("log_fare", "mean"),
     mean_pclass=("pclass", "mean"),
@@ -135,7 +135,7 @@ plt.close(fig)
 
 
 # Pairwise association heatmaps: Spearman rho for numeric fields, chi-square p-values for categorical fields.
-numeric_assoc = train[["age", "fare", "sibsp", "parch", "survived"]]
+numeric_assoc = data[["age", "fare", "sibsp", "parch", "survived"]]
 spearman_matrix = numeric_assoc.corr(method="spearman")
 
 categorical_assoc = ["sex", "pclass", "embarked", "survived"]
@@ -144,7 +144,7 @@ pvalue_labels = np.full((len(categorical_assoc), len(categorical_assoc)), "", dt
 for i, left in enumerate(categorical_assoc):
     for j in range(i + 1, len(categorical_assoc)):
         right = categorical_assoc[j]
-        table = pd.crosstab(train[left], train[right])
+        table = pd.crosstab(data[left], data[right])
         _, p_value, _, _ = chi2_contingency(table, correction=False)
         pvalue_matrix[i, j] = pvalue_matrix[j, i] = p_value
         label = "p<.001" if p_value < 0.001 else f"p={p_value:.2f}"
