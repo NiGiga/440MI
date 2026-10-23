@@ -1,4 +1,8 @@
+<<<<<<< HEAD
 """Fraud scoring service: the corrected counterpart of Class6_model_api.py (Class 20).
+=======
+"""Fraud scoring service: the corrected counterpart of Class6_model_api.py (Class 30).
+>>>>>>> upstream/HEAD
 
 Differences from the minimal endpoint:
 - loads an artifact that exists in the repository, together with its scaler
@@ -28,7 +32,11 @@ MODEL_PATH = ROOT / "streamlit" / "model.pkl"
 SCALER_PATH = ROOT / "streamlit" / "scaler.pkl"
 LOG_PATH = ROOT / "logs" / "predictions.jsonl"
 
+<<<<<<< HEAD
 # Explicit, documented decision threshold (see Class 16); override with FRAUD_THRESHOLD.
+=======
+# Explicit, documented decision threshold (see Class 18); override with FRAUD_THRESHOLD.
+>>>>>>> upstream/HEAD
 THRESHOLD = float(os.environ.get("FRAUD_THRESHOLD", "0.5"))
 
 with open(MODEL_PATH, "rb") as f:

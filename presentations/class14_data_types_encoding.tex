@@ -13,11 +13,19 @@
 \begin{frame}{Agenda}
 \begin{itemize}
 \item From data type to data structure: structured, semi-structured, unstructured.
+<<<<<<< HEAD
 \item Where each structure shows up in this repository's real services.
 \item Why raw values must be encoded before a model can use them.
 \item One-hot, ordinal, target, and cyclic encoding.
 \item Encoding versus embedding as two different compression strategies.
 \item Dimensionality reduction (PCA) as feature extraction after encoding.
+=======
+\item Where each structure shows up in the course's running cases.
+\item Why raw values must be encoded before a model can use them.
+\item One-hot, ordinal, target, and cyclic encoding; high cardinality and unseen values.
+\item Encoding versus embedding: a representation designed a priori versus one learned from data.
+\item PCA as dimensionality reduction and as a way to learn an embedding; scores, loadings, and latent space.
+>>>>>>> upstream/HEAD
 \end{itemize}
 \coursefooter
 \end{frame}
@@ -25,7 +33,11 @@
 \begin{frame}{From data type to data structure}
 \begin{itemize}
 \item Class 13 asked whether data is tabular, time series, spectral, or image.
+<<<<<<< HEAD
 \item This class asks a orthogonal question: how organized is it, structured, semi-structured, or unstructured?
+=======
+\item This class asks an orthogonal question: how organized is it, structured, semi-structured, or unstructured?
+>>>>>>> upstream/HEAD
 \item Any of the four data types from Class 13 can appear in any of these three organizational forms.
 \item The organizational form determines how much encoding work is needed before a model can use the data at all.
 \end{itemize}
@@ -58,6 +70,66 @@ Unstructured & No inherent schema at all: raw text, images, and audio waveforms.
 \coursefooter
 \end{frame}
 
+<<<<<<< HEAD
+=======
+\begin{frame}{The three structures in the running cases}
+\begingroup\footnotesize
+\renewcommand{\arraystretch}{1.4}
+\begin{tabularx}{\textwidth}{>{\raggedright\arraybackslash}p{0.2\textwidth} >{\raggedright\arraybackslash}X l >{\raggedright\arraybackslash}X}
+\bfseries Source & \bfseries Raw form & \bfseries Structure & \bfseries Work before modelling \\
+\toprule
+Pasteurization service & JSON events from the \texttt{/stream} endpoint of \texttt{pasteurization/serving.py} & Semi-structured & Fix the key set, flatten each event into a row, encode \texttt{state} \\
+Pasteurization, after flattening & Design matrix, one row $\mathbf{x}_t$ per event & Structured & Encode categorical columns, standardize numerical ones \\
+Fraud detection & Transaction records & Structured & Encode categorical columns, some of high cardinality (e.g.\ merchant ID) \\
+Production complements & Operator notes, images, logs & Unstructured & Learn or reuse an embedding \\
+\bottomrule
+\end{tabularx}
+\par\endgroup
+\vspace{0.6em}
+\begingroup\small
+The structure is a property of the form in which data arrives, not of the data itself: the same pasteurization measurements are semi-structured on the wire and structured in the design matrix.
+\par\endgroup
+\coursefooter
+\end{frame}
+
+\begin{frame}[fragile]{Structured text: one record, three text formats}
+\begin{columns}[T]
+\column{0.32\textwidth}
+{\small\bfseries CSV}
+\begin{lstlisting}[basicstyle=\ttfamily\tiny, columns=fullflexible, keepspaces=true, frame=single, backgroundcolor=\color{codebg}, rulecolor=\color{courseblue!40}]
+timestamp,state,T,pH
+162.0,Hold,71.987,6.663
+163.0,Hold,71.990,6.661
+\end{lstlisting}
+\column{0.32\textwidth}
+{\small\bfseries JSON}
+\begin{lstlisting}[basicstyle=\ttfamily\tiny, columns=fullflexible, keepspaces=true, frame=single, backgroundcolor=\color{codebg}, rulecolor=\color{courseblue!40}]
+{"timestamp": 162.0,
+ "state": "Hold",
+ "T": 71.987,
+ "pH": 6.663}
+\end{lstlisting}
+\column{0.32\textwidth}
+{\small\bfseries XML}
+\begin{lstlisting}[basicstyle=\ttfamily\tiny, columns=fullflexible, keepspaces=true, frame=single, backgroundcolor=\color{codebg}, rulecolor=\color{courseblue!40}]
+<event>
+  <timestamp>162.0</timestamp>
+  <state>Hold</state>
+  <T>71.987</T>
+  <pH>6.663</pH>
+</event>
+\end{lstlisting}
+\end{columns}
+\vspace{0.5em}
+\begin{itemize}\small
+\item Structured text is human-readable text whose syntax follows formal rules, so a parser can read it without guessing.
+\item CSV relies on position (column order and a header), JSON and XML on named keys or tags; the latter allow nesting and optional fields.
+\item Text format is not the same as structure: the same measurement is structured as CSV and semi-structured as JSON or XML.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+>>>>>>> upstream/HEAD
 \begin{frame}[fragile]{Semi-structured example: a streaming JSON event}
 \begin{columns}[T]
 \column{0.4\textwidth}
@@ -104,6 +176,7 @@ data: {
 
 \begin{frame}{Representations: encoding and embedding}
 \begingroup\small
+<<<<<<< HEAD
 A representation is a map $\phi: \mathcal{V} \to \mathbb{R}^{k}$ that assigns a numerical vector to each raw value $v \in \mathcal{V}$; every model operates on $\phi(v)$, never on $v$ itself. Two families of maps are distinguished:
 \par\endgroup
 \vspace{0.5em}
@@ -125,14 +198,42 @@ Typical use & Low-cardinality nominal, ordinal, and cyclic variables & High-card
 \bottomrule
 \end{tabularx}
 \par\endgroup
+=======
+A representation is a map $\phi: \mathcal{V} \to \mathbb{R}^{k}$ that gives each raw value $v$ a numerical vector; every model operates on $\phi(v)$, never on $v$. Two families:
+\par\endgroup
+\vspace{0.6em}
+\begingroup\small
+\renewcommand{\arraystretch}{1.3}
+\begin{tabularx}{\textwidth}{>{\bfseries}l >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
+& \bfseries Encoding & \bfseries Embedding \\
+\toprule
+Construction & Fixed a priori by the analyst & Estimated from data by optimizing an objective \\
+\addlinespace[0.3em]
+Dimension & Set by the scheme ($K$ for one-hot, 1 or 2 otherwise) & Chosen by the analyst, typically $k \ll K$ \\
+\addlinespace[0.3em]
+Geometry & No similarity unless designed & Similar values map to nearby vectors \\
+\addlinespace[0.3em]
+Typical use & Low-cardinality nominal, ordinal, cyclic & High-cardinality categories, text, images \\
+\bottomrule
+\end{tabularx}
+\par\endgroup
+\vspace{0.6em}
+{\footnotesize Neither family compresses by definition: one-hot expands one column into $K$.\par}
+>>>>>>> upstream/HEAD
 \coursefooter
 \end{frame}
 
 \begin{frame}{Encodings}
 \begingroup\small
+<<<<<<< HEAD
 An encoding is a fixed map $\phi_{\mathrm{enc}}: \mathcal{V} \to \mathbb{R}^{k}$ specified before training. Its choice is determined by the cardinality $K = |\mathcal{V}|$ and the measurement scale of the variable.
 \par\endgroup
 \vspace{0.5em}
+=======
+An encoding is a map $\phi_{\mathrm{enc}}: \mathcal{V} \to \mathbb{R}^{k}$ whose form is specified before training. One-hot, ordinal, and cyclic encodings are fully determined by the analyst; target encoding also estimates one statistic per value from the training labels. The choice depends on the cardinality $K = |\mathcal{V}|$ and the measurement scale of the variable.
+\par\endgroup
+\vspace{0.4em}
+>>>>>>> upstream/HEAD
 \begingroup\footnotesize
 \renewcommand{\arraystretch}{1.5}
 \begin{tabularx}{\textwidth}{>{\bfseries}l l c >{\raggedright\arraybackslash}X}
@@ -160,6 +261,39 @@ Cyclic & $\big(\sin(2\pi v/P),\ \cos(2\pi v/P)\big)$ & $2$ & Periodic variables 
 \coursefooter
 \end{frame}
 
+<<<<<<< HEAD
+=======
+\begin{frame}{The Titanic dataset}
+\begin{columns}[T]
+\column{0.5\textwidth}
+\begingroup\small
+\begin{itemize}
+\item Passenger records from the 1912 sinking of the RMS Titanic; the training set has 891 passengers.
+\item Task: predict \texttt{survived} (1 = survived, 0 = did not), a binary classification problem; about 38\% survived.
+\item Used in Class 4 (\texttt{Class4\_DataEngineering.ipynb}) and here as a small table with every kind of variable that needs encoding.
+\end{itemize}
+\par\endgroup
+\column{0.48\textwidth}
+\begingroup\footnotesize
+\renewcommand{\arraystretch}{1.25}
+\begin{tabularx}{\textwidth}{>{\ttfamily}l >{\raggedright\arraybackslash}X}
+Column & \bfseries Kind \\
+\toprule
+survived & Target (binary) \\
+pclass & Ordinal: 1st, 2nd, 3rd class \\
+sex & Nominal, $K = 2$ \\
+embarked & Nominal, $K = 3$ (S, C, Q) \\
+age, fare & Numerical \\
+sibsp, parch & Counts (family on board) \\
+name, ticket, cabin & Text or identifiers, high cardinality \\
+\bottomrule
+\end{tabularx}
+\par\endgroup
+\end{columns}
+\coursefooter
+\end{frame}
+
+>>>>>>> upstream/HEAD
 \begin{frame}{Encoding examples}
 \centering
 \includegraphics[width=\textwidth,height=0.72\textheight,keepaspectratio]{images/class14_encoding_examples.pdf}
@@ -210,6 +344,44 @@ All & 889 & 340 & $\bar{y} = 0.382$ \\
 \coursefooter
 \end{frame}
 
+<<<<<<< HEAD
+=======
+\begin{frame}{High cardinality and unseen values}
+\begingroup\small
+\begin{columns}[T]
+\column{0.5\textwidth}
+\textbf{\color{courseblue} Further encodings for large $K$}
+\vspace{0.3em}
+
+\begingroup\footnotesize
+\renewcommand{\arraystretch}{1.35}
+\begin{tabularx}{\linewidth}{>{\bfseries}l >{\raggedright\arraybackslash}X}
+Count & $\phi(v) = n_v$ (or $n_v/n$), $k = 1$. Unsupervised, so no target leakage; values with equal counts become indistinguishable. \\
+Hashing & $\phi(v) = \mathbf{e}_{h(v) \bmod B} \in \{0,1\}^{B}$, $k = B$ fixed whatever $K$. Unseen values need no special handling; distinct values can collide, and the map cannot be inverted, so interpretability is lost. \\
+Target & $\hat{\mu}_v$, $k = 1$ (previous slide). Supervised; requires out-of-fold estimation. \\
+\end{tabularx}
+\par\endgroup
+
+\column{0.46\textwidth}
+\textbf{\color{courseblue} Values not seen in training}
+\vspace{0.3em}
+
+\begingroup\footnotesize
+\begin{itemize}\setlength{\itemsep}{3pt}
+\item \textbf{One-hot:} all-zero vector (\texttt{handle\_unknown="ignore"}) or a shared ``infrequent'' column (\texttt{min\_frequency} in scikit-learn).
+\item \textbf{Target:} with $n_v = 0$ the smoothed formula gives $\hat{\mu}_v = \bar{y}$, so the fallback is built in.
+\item \textbf{Ordinal:} no safe default; the position of a new level must be decided explicitly.
+\item \textbf{Embedding:} a reserved row for unknown values ($\langle$\texttt{UNK}$\rangle$), trained on the rarest values.
+\end{itemize}
+\vspace{0.2em}
+Rare values should be grouped before fitting: their encodings and embeddings are estimated from few samples.
+\par\endgroup
+\end{columns}
+\par\endgroup
+\coursefooter
+\end{frame}
+
+>>>>>>> upstream/HEAD
 \begin{frame}{Embeddings}
 \begingroup\small
 An embedding is a learned map $\mathbf{z} = E^{\top}\phi_{\mathrm{enc}}(v)$, with $E \in \mathbb{R}^{K \times k}$ and $k \ll K$: each row of $E$ is the dense vector assigned to one value, estimated from data jointly with a model or through a dedicated objective (e.g.\ word2vec for text).
@@ -273,7 +445,11 @@ word2vec (Mikolov et al., 2013) learns the matrix $E$ from raw text under the \e
 
 \vspace{0.3em}
 \begingroup\footnotesize\raggedright
+<<<<<<< HEAD
 \textbf{Training (skip-gram):} for every word in the corpus, the model learns to predict the words in its context window. Words used in similar contexts therefore obtain nearby vectors, and some relations become parallel offsets, e.g.\ $\mathbf{z}_{\text{king}} - \mathbf{z}_{\text{man}} + \mathbf{z}_{\text{woman}} \approx \mathbf{z}_{\text{queen}}$.
+=======
+\textbf{Training (skip-gram):} for every word in the corpus, the model learns to predict the words in its context window. Words used in similar contexts therefore obtain nearby vectors, and some relations become approximately parallel offsets, e.g.\ $\mathbf{z}_{\text{king}} - \mathbf{z}_{\text{man}} + \mathbf{z}_{\text{woman}} \approx \mathbf{z}_{\text{queen}}$. Such analogies hold only in favourable cases, and part of their success comes from excluding the query words from the nearest-neighbour search (Nissim et al., 2020).
+>>>>>>> upstream/HEAD
 \par\endgroup
 \coursefooter
 \end{frame}
@@ -315,11 +491,65 @@ PCA rotates the original feature space to new orthogonal axes called principal c
 
 \begin{frame}{PCA projection with feature directions}
 \centering
+<<<<<<< HEAD
 \includegraphics[width=\textwidth,height=0.68\textheight,keepaspectratio]{images/class14_pasteurization_pca_biplot.pdf}
 
 \vspace{0.2em}
 \begingroup\scriptsize\raggedright
 PCA of 6{,}362 sensor samples (20 batches simulated with \texttt{synth\_sensors.py}, nine standardized variables); points are coloured by process phase and arrows show the loading of each sensor on PC1 and PC2. The phases form distinct regions even though the phase label was not used by PCA.
+=======
+\includegraphics[width=\textwidth,height=0.66\textheight,keepaspectratio]{images/class14_pasteurization_pca_biplot.pdf}
+
+\vspace{0.2em}
+\begingroup\scriptsize\raggedright
+PCA of 6{,}362 sensor samples (20 batches simulated with \texttt{synth\_sensors.py}, nine standardized variables); points are coloured by process phase and arrows show the loading of each sensor on PC1 and PC2. The arrows are rescaled by a common factor for readability: only their directions and relative lengths are meaningful. The phases form distinct regions even though the phase label was not used by PCA.
+\par\endgroup
+\coursefooter
+\end{frame}
+
+\begin{frame}{Scores, loadings, and latent space}
+\begingroup\small
+For centred (here also standardized) data $X_c \in \mathbb{R}^{n \times p}$, PCA with $k$ components gives
+\[
+T = X_c W_k \quad \text{(encoder)}, \qquad \hat{X}_c = T W_k^{\top} \quad \text{(decoder)}, \qquad W_k \in \mathbb{R}^{p \times k},\ W_k^{\top} W_k = I.
+\]
+\vspace{-0.6em}
+\begin{itemize}\setlength{\itemsep}{2pt}
+\item \textbf{Loadings} $W_k$: each column is the direction of one component, written in the original variables (the arrows of the biplot). They live in the space of the variables.
+\item \textbf{Scores} $T$: the coordinates of each sample on the components (the points of the biplot).
+\item \textbf{Latent space}: the $k$-dimensional space in which the scores live; PC1--PC2 spans a 2D latent space, reported with its explained variance.
+\item \textbf{Embedding}: the score vector of one object, i.e.\ its point in the latent space.
+\end{itemize}
+\par\endgroup
+\vspace{0.2em}
+\begingroup\scriptsize
+\begin{itemize}\setlength{\itemsep}{1pt}
+\item The loadings make linear latent axes interpretable (next slides: a temperature axis and a flow axis); neural encoders offer no such direct reading.
+\item ``Loadings'' denotes either the unit eigenvectors $W$ or $W\Lambda^{1/2}$ (for standardized data, the correlations between variables and components): state which one is reported.
+\item Probabilistic PCA, $\mathbf{x} = W\mathbf{z} + \boldsymbol{\mu} + \boldsymbol{\varepsilon}$ with $\mathbf{z} \sim \mathcal{N}(\mathbf{0}, I)$, makes $\mathbf{z}$ a latent variable in the statistical sense (Tipping and Bishop, 1999).
+\end{itemize}
+\par\endgroup
+\coursefooter
+\end{frame}
+
+\begin{frame}{Two uses of PCA in this class}
+\begingroup\footnotesize
+\renewcommand{\arraystretch}{1.5}
+\begin{tabularx}{\textwidth}{>{\bfseries\raggedright\arraybackslash}p{0.2\textwidth} >{\raggedright\arraybackslash}X r >{\raggedright\arraybackslash}X r}
+Use & Rows of the input & $n$ & A point is & PC1 + PC2 \\
+\toprule
+Dimensionality reduction & Sensor samples $\mathbf{x}_t$ (20 batches) & 6{,}362 & One observation, in the latent space of the samples & $30\% + 21\%$ \\
+Embedding of a categorical variable & Phase-wise means $\mathbf{m}_v$ (100 batches) & 6 & One value of the variable \texttt{state} & $49\% + 23\%$ \\
+\bottomrule
+\end{tabularx}
+\par\endgroup
+\vspace{0.8em}
+\begingroup\small
+\begin{itemize}
+\item Same algorithm, different objects: the first projects observations, the second represents the categories of a variable.
+\item The percentages are not comparable. In the samples, PCA must also explain the variability within each phase (noise, transients); averaging removes it, so the differences between phases dominate the variance of the means.
+\end{itemize}
+>>>>>>> upstream/HEAD
 \par\endgroup
 \coursefooter
 \end{frame}
@@ -330,12 +560,20 @@ PCA of 6{,}362 sensor samples (20 batches simulated with \texttt{synth\_sensors.
 \par\endgroup
 \vspace{0.3em}
 \centering
+<<<<<<< HEAD
 \includegraphics[width=\textwidth,height=0.47\textheight,keepaspectratio]{images/class14_pca_embedding_step12.pdf}
+=======
+\includegraphics[width=\textwidth,height=0.45\textheight,keepaspectratio]{images/class14_pca_embedding_step12.pdf}
+>>>>>>> upstream/HEAD
 
 \vspace{0.2em}
 \begin{itemize}\footnotesize
 \item \textbf{Step 1:} each phase $v$ is described by the mean of nine sensor variables over its samples (row $\mathbf{m}_v$ of $M$).
+<<<<<<< HEAD
 \item \textbf{Step 2:} each sensor $j$ is standardized, $(m_{vj} - \mu_j)/\sigma_j$, so that variables in different units (°C, mS/cm, cP) become comparable; each column is then centred on the mean of the six phases, so that $0$ represents the average phase.
+=======
+\item \textbf{Step 2:} each sensor $j$ is standardized, $(m_{vj} - \mu_j)/\sigma_j$, where $\mu_j$ and $\sigma_j$ are the mean and standard deviation of sensor $j$ over all samples, so that variables in different units (°C, mS/cm, cP) become comparable. Because the phases have different durations, the phase means are not centred after this step; each column is therefore centred on the mean of the six phases, so that $0$ represents the average phase.
+>>>>>>> upstream/HEAD
 \end{itemize}
 \coursefooter
 \end{frame}
@@ -346,6 +584,7 @@ PCA of 6{,}362 sensor samples (20 batches simulated with \texttt{synth\_sensors.
 \par\endgroup
 \vspace{0.3em}
 \centering
+<<<<<<< HEAD
 \includegraphics[width=0.92\textwidth,height=0.4\textheight,keepaspectratio]{images/class14_pca_embedding_step3.pdf}
 
 \vspace{0.2em}
@@ -355,6 +594,17 @@ PCA of 6{,}362 sensor samples (20 batches simulated with \texttt{synth\_sensors.
 $z_1$ weights temperature positively ($+0.58$) and viscosity $\eta$ negatively ($-0.56$): it is high for hot, thin milk, i.e.\ a \emph{temperature axis}.
 $z_2$ weights inflow negatively and outflow and conductivity positively: it separates filling from discharge, i.e.\ a \emph{flow axis}.
 pH and P receive weight $\approx 0$: they do not change between phases.
+=======
+\includegraphics[width=0.92\textwidth,height=0.38\textheight,keepaspectratio]{images/class14_pca_embedding_step3.pdf}
+
+\vspace{0.2em}
+\begin{itemize}\footnotesize
+\item \textbf{3a:} each bar is the share of the total variation between phases explained by one axis. The first two axes explain $49\% + 23\% = 72\%$, so we keep $k = 2$. PC6 explains $0\%$ by construction: the six centred rows sum to zero, so at most five axes carry variance. With so few points, the shares are fragile estimates.
+\item \textbf{3b:} the bars are the weights (loadings) of each sensor in the new axes.
+$z_1$ weights temperature positively ($+0.58$) and viscosity $\eta$ negatively ($-0.56$): it is high for hot, thin milk, i.e.\ a \emph{temperature axis}.
+$z_2$ weights inflow negatively and outflow and conductivity positively: it separates filling from discharge, i.e.\ a \emph{flow axis}.
+pH and P receive weight $\approx 0$: they do not change between phases. Unlike the axes of word2vec, these axes can be read through their loadings.
+>>>>>>> upstream/HEAD
 \end{itemize}
 \coursefooter
 \end{frame}
@@ -377,8 +627,13 @@ z_1 &= \underbrace{0.58 \cdot 2.01}_{T} + \underbrace{(-0.56)(-1.98)}_{\eta} + \
 \end{aligned}
 \]
 \par\endgroup
+<<<<<<< HEAD
 \begingroup\footnotesize
 Repeating this for every phase and for $z_2$ gives $E = Z_c W_2$: one point per phase.
+=======
+\begingroup\scriptsize
+Repeating this for every phase and for $z_2$ gives $E = Z_c W_2 \in \mathbb{R}^{6 \times 2}$, the matrix $E$ of the embedding definition: row $v$ is $\mathbf{z}_v = E^{\top}\mathbf{e}_v$.
+>>>>>>> upstream/HEAD
 \begin{itemize}\setlength{\itemsep}{1pt}
 \item Close points mean similar sensor profiles.
 \item Hold lies far right: the hottest phase.
@@ -392,21 +647,37 @@ Repeating this for every phase and for $z_2$ gives $E = Z_c W_2$: one point per 
 
 \begin{frame}{Papers and materials}
 \readinglist{
+<<<<<<< HEAD
 \fontsize{6.8}{8.2}\selectfont
+=======
+\fontsize{6.2}{7.4}\selectfont
+>>>>>>> upstream/HEAD
 \begin{columns}[T]
 \column{0.5\textwidth}
 \begin{itemize}\setlength{\itemsep}{1pt}
 \item Abiteboul, S. (1997). Querying semi-structured data. In \emph{Proceedings of the International Conference on Database Theory (ICDT)}, LNCS 1186, 1--18. Springer.
 \item Zheng, A., Casari, A. (2018). \emph{Feature Engineering for Machine Learning}. O'Reilly.
 \item Micci-Barreca, D. (2001). A preprocessing scheme for high-cardinality categorical attributes in classification and prediction problems. \emph{ACM SIGKDD Explorations}, 3(1), 27--32.
+<<<<<<< HEAD
 \item Jolliffe, I.\,T. (2002). \emph{Principal Component Analysis}, 2nd ed. Springer.
+=======
+\item Weinberger, K., Dasgupta, A., Langford, J., Smola, A., Attenberg, J. (2009). Feature hashing for large scale multitask learning. In \emph{Proceedings of the 26th International Conference on Machine Learning (ICML)}, 1113--1120.
+\item Jolliffe, I.\,T. (2002). \emph{Principal Component Analysis}, 2nd ed. Springer.
+\item Tipping, M.\,E., Bishop, C.\,M. (1999). Probabilistic principal component analysis. \emph{Journal of the Royal Statistical Society: Series B}, 61(3), 611--622.
+>>>>>>> upstream/HEAD
 \item scikit-learn User Guide: \href{https://scikit-learn.org/stable/modules/preprocessing.html\#encoding-categorical-features}{encoding categorical features}; \href{https://scikit-learn.org/stable/modules/decomposition.html\#pca}{principal component analysis}.
 \end{itemize}
 \column{0.5\textwidth}
 \begin{itemize}\setlength{\itemsep}{1pt}
 \item Mikolov, T., Chen, K., Corrado, G., Dean, J. (2013). Efficient estimation of word representations in vector space. \href{https://arxiv.org/abs/1301.3781}{arXiv:1301.3781}.
 \item Mikolov, T., Sutskever, I., Chen, K., Corrado, G., Dean, J. (2013). Distributed representations of words and phrases and their compositionality. \emph{Advances in Neural Information Processing Systems}, 26, 3111--3119.
+<<<<<<< HEAD
 \item Guo, C., Berkhahn, F. (2016). Entity embeddings of categorical variables. \href{https://arxiv.org/abs/1604.06737}{arXiv:1604.06737}.
+=======
+\item Nissim, M., van Noord, R., van der Goot, R. (2020). Fair is better than sensational: man is to doctor as woman is to doctor. \emph{Computational Linguistics}, 46(2), 487--497.
+\item Guo, C., Berkhahn, F. (2016). Entity embeddings of categorical variables. \href{https://arxiv.org/abs/1604.06737}{arXiv:1604.06737}.
+\item Bengio, Y., Courville, A., Vincent, P. (2013). Representation learning: a review and new perspectives. \emph{IEEE Transactions on Pattern Analysis and Machine Intelligence}, 35(8), 1798--1828.
+>>>>>>> upstream/HEAD
 \item Huyen, C. (2022). \emph{Designing Machine Learning Systems}. O'Reilly.
 \end{itemize}
 \end{columns}
@@ -425,7 +696,11 @@ Repeating this for every phase and for $z_2$ gives $E = Z_c W_2$: one point per 
 {\Large\bfseries\color{courseblue} Thank you for your attention.}
 
 \vspace{0.4em}
+<<<<<<< HEAD
 {\small\color{coursegray} Next: Class 15 --- feature engineering: cleaning, curation, and selection.}
+=======
+{\small\color{coursegray} Next: Class 15 --- practical encoding and preprocessing.}
+>>>>>>> upstream/HEAD
 \vfill
 \coursefooter
 \end{frame}

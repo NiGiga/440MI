@@ -1,0 +1,199 @@
+\input{common}
+
+\title{Class 35: Project Requirements and Development Plan}
+\subtitle{Session 35 of 36 -- MLOps Block}
+\author{\coursename}
+\date{18 December}
+
+\begin{document}
+
+\frame{\titlepage \coursefooter}
+
+\begin{frame}{Agenda}
+\begin{itemize}
+\item From pitch to requirements: reconnecting to Class 25's practice
+\item Deliverables mapped to the full lifecycle
+\item Work Breakdown Structure and milestone sequencing
+\item Sprint and timeline thinking
+\item Definition of Ready and Definition of Done
+\item Risk register for ML projects
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Planning is part of the engineering work}
+\learninggoals{
+\begin{itemize}
+\item Turn a scoped project pitch into a milestone sequence and Work Breakdown Structure.
+\item Map deliverables onto the full lifecycle: data, model, interface, delivery, and monitoring.
+\item Write Definition of Ready and Definition of Done criteria the team will actually use.
+\item Build a lightweight risk register with concrete responses.
+\end{itemize}
+}
+\coursefooter
+\end{frame}
+
+\coursecontextframe
+{Project planning as lifecycle design.}
+{Class 33's pitch becomes a real project only once it has milestones, deliverables, and a way to tell whether work is ready or done; Class 34's guest session is a reminder that real engagements run on exactly this kind of plan.}
+{In the fraud case, planning means sequencing data work, baseline modeling, service exposure, deployment checks, and monitoring criteria.}
+{In the pasteurization case, planning means sequencing sensor understanding, forecasting or alerting logic, dashboard integration, and drift response design.}
+{The course thread is that a coherent project plan should already reflect the full lifecycle, not only the modeling step.}
+
+\begin{frame}{From your Class 33 pitch to this plan}
+\begin{itemize}
+\item Your MVP becomes the first few milestones; your stretch goal becomes a later, optional milestone.
+\item Your two named risks become the first two rows of today's risk register.
+\item Your success criterion becomes the definition of done for the final milestone.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Milestones and WBS}
+\begin{itemize}
+\item Proposal approval
+\item Data pipeline MVP
+\item Baseline model
+\item Deployable service or dashboard
+\item Monitoring active
+\item Final demonstration
+\end{itemize}
+\begin{block}{WBS reminder}
+Break work into outputs that can be reviewed, not vague activity labels.
+\end{block}
+\coursefooter
+\end{frame}
+
+\begin{frame}{The WBS is about outputs, not vague activity}
+\begin{itemize}
+\item Good work packages end in something reviewable: cleaned dataset, baseline notebook, API endpoint, dashboard page, monitoring report.
+\item The 100\% rule helps ensure the WBS covers the whole scope without duplication.
+\item If a task cannot be evaluated by an external reviewer, it is often too vague.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Suggested semester deliverables}
+\begin{enumerate}
+\item Data understanding and requirement brief.
+\item Baseline model and evaluation report.
+\item Packaged service or dashboard.
+\item CI/CD or reproducibility automation.
+\item Monitoring or drift analysis plan.
+\end{enumerate}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Deliverables should map to the lifecycle}
+\begin{tabularx}{\textwidth}{>{\bfseries}l X}
+Deliverable & Why it matters \\
+\toprule
+Data pipeline artifact & Makes inputs reproducible and inspectable. \\
+Baseline model & Creates a reference point for later improvement. \\
+Deployable interface & Proves the model can be consumed by users or systems. \\
+Automation artifact & Reduces manual, unrepeatable work. \\
+Monitoring plan & Shows how the system remains trustworthy after release. \\
+\bottomrule
+\end{tabularx}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Sprint and timeline thinking}
+\begin{itemize}
+\item Sprint 0: environment, repo structure, and scope.
+\item Sprint 1: data understanding and requirements.
+\item Sprint 2: baseline modeling.
+\item Sprint 3: serving and integration.
+\item Sprint 4: monitoring and final hardening.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Milestones reduce risk when they represent decisions}
+\begin{itemize}
+\item Proposal approval means the team has a coherent scope.
+\item Data pipeline MVP means later modeling is grounded in real inputs.
+\item Baseline model means performance can be compared instead of guessed.
+\item Deployable service means integration risk is no longer abstract.
+\item Monitoring active means the project is thinking beyond the demo.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{DoR and DoD for student teams}
+\begin{columns}[T]
+\column{0.48\textwidth}
+\textbf{Definition of Ready}
+\begin{itemize}
+\item Requirement is written
+\item Data source identified
+\item Acceptance criteria drafted
+\end{itemize}
+\column{0.48\textwidth}
+\textbf{Definition of Done}
+\begin{itemize}
+\item Code runs reproducibly
+\item Result is documented
+\item Test or demo evidence exists
+\end{itemize}
+\end{columns}
+\coursefooter
+\end{frame}
+
+\begin{frame}{A lightweight risk register helps project control}
+\begin{tabularx}{\textwidth}{>{\bfseries}l X}
+Risk & Example response \\
+\toprule
+Data access or quality risk & Define fallback datasets and validation checks. \\
+Model performance risk & Commit to a baseline and threshold review. \\
+Integration risk & Deliver an API or dashboard slice early. \\
+Schedule risk & Separate must-have deliverables from stretch goals. \\
+Governance risk & Document assumptions, versions, and monitoring triggers. \\
+\bottomrule
+\end{tabularx}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Project framing documents already in this repo}
+\repoactivity{
+\begin{itemize}
+\item `documents/FraudDetectionAsaService.pdf` and `documents/FraudDetectionAsaService_presentation.pdf` show a fully written project framing for the fraud case.
+\item `documents/Forecasting_and_Drift_Pasteurization.pdf` shows the same for the pasteurization case.
+\item Use their structure, not their content, as a model for your own plan if your project follows a different idea.
+\end{itemize}
+}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Discussion prompt}
+\begin{block}{Question}
+Which single milestone in your plan is actually a decision point, where the project could be redirected or stopped if things go wrong?
+\end{block}
+\begin{itemize}
+\item This distinguishes a real milestone from a calendar date with a label on it.
+\item It also connects planning back to the risk register: a decision point is where a risk gets checked, not just hoped away.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Papers and materials}
+\readinglist{
+\href{https://proceedings.neurips.cc/paper_files/paper/2015/file/86df7dcfd896fcaf2674f757a2463eba-Paper.pdf}{Sculley et al. (2015), Hidden Technical Debt};\
+\href{https://www.oreilly.com/library/view/designing-machine-learning/9781098107956/}{Designing Machine Learning Systems};\
+\href{https://www.atlassian.com/agile/project-management/epics-stories-themes}{Project planning with epics and stories};\
+\href{https://www.smartsheet.com/critical-path-method}{Critical path and schedule planning basics}.
+}
+\coursefooter
+\end{frame}
+
+\classclosingframe
+{\begin{itemize}
+\item A strong plan defines outputs, milestones as decision points, and named risks with responses.
+\item Milestones should demonstrate engineering progress, not only analytical activity.
+\item Good project planning anticipates delivery, monitoring, and change from the start.
+\end{itemize}}
+{This plan, together with the Class 33 pitch, is what each team brings into the proposal presentations.}
+{Class 36 covers the logistics and rubric for the final proposal-presentation session.}
+{Planning is complete only once it can be defended in front of reviewers, which is exactly what the next two sessions are for.}
+
+\end{document}
