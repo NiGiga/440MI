@@ -151,6 +151,14 @@ These tools are not presented as interchangeable. Each appears in the course bec
 - inspect the case-study code in [pasteurization/](pasteurization/) and [streamlit/](streamlit/)
 - use the tutorials in [tutorials/](tutorials/) to connect code to packaging and automation
 
+### Git commit hook
+
+The versioned `.githooks/commit-msg` hook removes Claude/Anthropic `Co-Authored-By` trailers from new commit messages. To enable it in a fresh clone, run:
+
+```bash
+git config core.hooksPath .githooks
+```
+
 ### For project work
 
 - start from a notebook or baseline script

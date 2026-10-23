@@ -1,0 +1,17 @@
+#!/bin/sh
+set -eu
+
+python3 - "$1" <<'PY'
+from pathlib import Path
+import re
+import sys
+
+message_path = Path(sys.argv[1])
+message = message_path.read_text()
+trailer = re.compile(
+    r"^\s*Co-Authored-By:.*(?:Claude|Anthropic).*?$",
+    re.IGNORECASE | re.MULTILINE,
+)
+message = trailer.sub("", message)
+message_path.write_text(message.rstrip() + "\n")
+PY
