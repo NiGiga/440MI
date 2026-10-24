@@ -1,28 +1,59 @@
-% Standalone Beamer revision of Class 16.
-% Optional original plots: place images/class16_*.pdf next to this file.
-\documentclass[aspectratio=169,11pt]{beamer}
-\usepackage[T1]{fontenc}
-\usepackage[utf8]{inputenc}
-\usepackage{lmodern,amsmath,amssymb,booktabs,tabularx,array,graphicx,tikz,xcolor}
-\usetikzlibrary{positioning,arrows.meta,shapes.geometric}
-\definecolor{courseblue}{HTML}{183F67}
-\definecolor{coursegold}{HTML}{C88A2B}
-\definecolor{courseice}{HTML}{EEF4F8}
-\definecolor{coursegray}{HTML}{66727B}
-\setbeamercolor{structure}{fg=courseblue}
-\setbeamercolor{frametitle}{fg=courseblue,bg=courseice}
-\setbeamercolor{block title}{fg=white,bg=courseblue}
-\setbeamercolor{block body}{fg=black,bg=courseice}
-\setbeamertemplate{navigation symbols}{}
-\setbeamertemplate{itemize item}{\color{coursegold}$\bullet$}
-\setbeamertemplate{footline}{\hspace{0.5em}\scriptsize University of Trieste\hfill Data-driven Systems Engineering $\mid$ 440MI / 305SM\hfill \insertframenumber/\inserttotalframenumber\hspace{0.8em}\vspace{0.3em}}
-\newcommand{\coursename}{Data-driven Systems Engineering}
-\newcommand{\coursefooter}{}
-\newcommand{\repoactivity}[1]{\begin{block}{Repository activity}#1\end{block}}
-\newcommand{\readinglist}[1]{\begin{block}{Papers and materials}#1\end{block}}
+\input{common}
+
+% Keep the diagram dimensions used by this deck.
 \tikzset{flowbox/.style={draw=courseblue,fill=courseice,rounded corners=2pt,align=center},
 accentbox/.style={draw=coursegold,fill=coursegold!12,rounded corners=2pt,align=center},
 arrow/.style={-Latex,thick,draw=courseblue}}
+
+% Stage navigation: the active item uses the course accent colour.
+\newcommand{\pipelinefocus}[1]{%
+\begin{center}
+\begin{tikzpicture}[node distance=0.22cm,
+  stage/.style={draw=courseblue,fill=courseice,rounded corners=2pt,
+    minimum width=1.95cm,minimum height=0.55cm,inner sep=3pt,font=\small,align=center},
+  active/.style={draw=coursegold,fill=coursegold!22,line width=1.2pt,font=\small\bfseries}]
+\foreach \label [count=\i] in {Raw data,Clean,Construct,Represent,Select,Model}{
+  \ifnum\i=1
+    \node[stage] (stage\i) at (0,0) {\label};
+  \else
+    \pgfmathtruncatemacro{\previous}{\i-1}
+    \node[stage,right=of stage\previous] (stage\i) {\label};
+    \draw[arrow] (stage\previous) -- (stage\i);
+  \fi
+  \ifnum\i=#1
+    \node[stage,active] at (stage\i.center) {\label};
+  \fi
+}
+\end{tikzpicture}
+\end{center}
+\vspace{-0.3em}
+}
+
+% Pipeline with a parallel track: a bar spanning every stage.
+\newcommand{\pipelineparallel}[1]{%
+\begin{center}
+\begin{tikzpicture}[node distance=0.22cm,
+  stage/.style={draw=courseblue,fill=courseice,rounded corners=2pt,
+    minimum width=1.95cm,minimum height=0.55cm,inner sep=3pt,font=\small,align=center}]
+\foreach \label [count=\i] in {Raw data,Clean,Construct,Represent,Select,Model}{
+  \ifnum\i=1
+    \node[stage] (stage\i) at (0,0) {\label};
+  \else
+    \pgfmathtruncatemacro{\previous}{\i-1}
+    \node[stage,right=of stage\previous] (stage\i) {\label};
+    \draw[arrow] (stage\previous) -- (stage\i);
+  \fi
+}
+\path (stage1.south west) ++(0,-0.3cm) coordinate (barnw);
+\path (stage6.south east) ++(0,-0.85cm) coordinate (barse);
+\draw[accentbox] (barnw) rectangle (barse);
+\node[font=\small\bfseries] at ($(barnw)!0.5!(barse)$) {#1};
+\foreach \i in {1,...,6}{\draw[coursegold,dashed] (stage\i.south) -- (stage\i.south |- barnw);}
+\end{tikzpicture}
+\end{center}
+\vspace{-0.3em}
+}
+
 % Preserves references to original illustrations without preventing compilation
 % when only the .tex file is available.
 \newcommand{\optionalfigure}[2]{%
@@ -40,21 +71,17 @@ arrow/.style={-Latex,thick,draw=courseblue}}
 
 \begin{frame}{Agenda}
 \begin{itemize}
-\item Why feature engineering remains necessary once every variable is numerically encoded.
-\item Data curation throughout the workflow: documentation, versioning, and validation.
-\item Data cleaning: missing values, duplicates, invalid values, and outliers.
-\item Feature construction from domain knowledge, for tabular data and data streams.
-\item Feature representation before selection: encoding, scaling, and PCA (Class 14).
-\item Feature selection: filter, wrapper, and embedded methods.
-\item Leakage and availability checks before deployment.
-\item Titanic running case: baseline, ablation, evaluation, and reproducible pipeline.
+\item Data curation and cleaning: missing values, duplicates, invalid values, outliers.
+\item Feature construction and representation: domain knowledge, encoding, scaling, PCA.
+\item Feature selection: filter and wrapper methods.
+\item Leakage checks and the Titanic case: baseline, ablation, reproducible pipeline.
 \end{itemize}
 \coursefooter
 \end{frame}
-\begin{frame}{Why feature engineering remains necessary after encoding}
+\begin{frame}{Encoding as part of feature engineering}
 \begin{itemize}
-\item Class 14 explained numerical representations; this class places them in a workflow. Encoding alone does not make a variable correct, reliable, or informative.
-\item Real datasets contain missing values, duplicates, and inconsistent types, which must be resolved before an encoding is meaningful.
+\item Encoding is one component of feature engineering, alongside cleaning, construction, scaling, and selection.
+\item Data cleaning addresses missing values, duplicates, and inconsistent types; encoding determines how categories are represented numerically.
 \item Not every available variable should become a feature: some are redundant, some carry only noise, and some induce leakage.
 \item Informative features are frequently absent from the raw data and must be constructed from domain knowledge.
 \end{itemize}
@@ -92,6 +119,34 @@ Construction creates candidate features (e.g., ratios or rolling means). It is o
 {\scriptsize The workflow is iterative: reject leaking or unavailable features early; construction and selection may be revisited. PCA constructs components rather than selecting original columns.}
 \coursefooter
 \end{frame}
+\begin{frame}{Raw data: the starting point}
+\pipelinefocus{1}
+\begin{columns}[T]
+\column{0.52\textwidth}
+\begin{block}{What is raw data?}\small
+Data exactly as collected or exported from its source, before cleaning, construction, or encoding. Each row is an observation; each column is an attribute.
+\end{block}
+\begin{itemize}\small
+\item \textbf{Types:} numeric, categorical, text, timestamp, stream.
+\item \textbf{Granularity:} what one row represents.
+\item \textbf{Provenance:} source, date, version.
+\end{itemize}
+\column{0.44\textwidth}
+\begin{block}{What to expect in raw data}\small
+\begin{itemize}
+\item Missing and duplicated values
+\item Inconsistent types or units
+\item Outliers and invalid entries
+\item Identifiers and leaking columns
+\end{itemize}
+\end{block}
+\end{columns}
+\vspace{-0.2em}
+\begin{alertblock}{Good practice}\small
+Keep an untouched copy; apply every change in code.
+\end{alertblock}
+\coursefooter
+\end{frame}
 \begin{frame}{Running case: Titanic survival prediction}
 \begin{block}{Engineering question}
 Can we predict whether a passenger survives, using only information available at the intended prediction moment?
@@ -100,8 +155,8 @@ Can we predict whether a passenger survives, using only information available at
 \column{0.52\textwidth}
 \begin{itemize}\small
 \item \textbf{Target:} \texttt{survived} (binary), $n=891$ passengers.
-\item \textbf{Raw candidates:} \texttt{age}, \texttt{sex}, \texttt{pclass}, \texttt{fare}, \texttt{sibsp}, \texttt{parch}, \texttt{embarked}.
-\item \textbf{Suspicious candidates:} \texttt{alive} and any attribute defined using outcomes after the event.
+\item \textbf{Source:} classic Kaggle training set: 12 columns, including the target and passenger identifier.
+\item \textbf{Candidates:} 10 original passenger attributes; derived features must have explicit definitions.
 \end{itemize}
 \column{0.46\textwidth}
 \begin{block}{Evidence we will reveal}\small
@@ -112,7 +167,9 @@ Raw $\rightarrow$ Curate $\rightarrow$ Clean $\rightarrow$ Construct $\rightarro
 \textbf{Class discussion:} Is a variable useful just because it is predictive?
 \coursefooter
 \end{frame}
+
 \begin{frame}{Data curation}
+\pipelineparallel{Data curation: document, validate, version}
 \begin{itemize}
 \item Curation makes a dataset understandable and reusable beyond its original authors.
 \item A data dictionary records the meaning, unit, and valid range of every column.
@@ -135,7 +192,7 @@ age & numeric & Age in years; missing possible & Check available \\
 sibsp & count & Siblings/spouses aboard; $\ge 0$ & Check available \\
 parch & count & Parents/children aboard; $\ge 0$ & Check available \\
 embarked & nominal & Embarkation port; some missing & Check available \\
-alive & nominal & Outcome-derived survival label & \textcolor{red}{Exclude: target leakage} \\
+passengerid & identifier & Unique passenger key & Exclude from baseline inputs \\
 \bottomrule
 \end{tabularx}
 \vspace{0.5em}
@@ -146,238 +203,188 @@ alive & nominal & Outcome-derived survival label & \textcolor{red}{Exclude: targ
 \coursefooter
 \end{frame}
 \begin{frame}{Data cleaning: scope and quality dimensions}
+\pipelinefocus{2}
 \centering
 \begin{tikzpicture}
-\node[accentbox, minimum width=6.6cm, minimum height=0.72cm, font=\small\bfseries] at (0,0) {Profile, validate, and document the data};
-\node[flowbox, text width=5.25cm, minimum height=1.45cm, align=left, inner sep=7pt, font=\scriptsize] at (-2.9,-1.45) {\textbf{Missingness}\\Measure rates and patterns; check whether absence is meaningful. Choose to preserve, impute, or remove with justification.};
-\node[flowbox, text width=5.25cm, minimum height=1.45cm, align=left, inner sep=7pt, font=\scriptsize] at (2.9,-1.45) {\textbf{Duplicates}\\Check exact and near repeats and key uniqueness. Confirm that repeated rows represent the same entity before deduplicating.};
-\node[flowbox, text width=5.25cm, minimum height=1.45cm, align=left, inner sep=7pt, font=\scriptsize] at (-2.9,-3.55) {\textbf{Invalid or inconsistent values}\\Check schema, types, labels, units, formats, and allowed ranges. Standardize valid variants; correct or reject invalid values.};
-\node[flowbox, text width=5.25cm, minimum height=1.45cm, align=left, inner sep=7pt, font=\scriptsize] at (2.9,-3.55) {\textbf{Outliers}\\Flag unusual values with domain limits and robust summaries. Investigate each: an extreme may be valid, erroneous, or a measurement fault.};
+\node[flowbox, text width=5.25cm, minimum height=1.45cm, align=left, inner sep=7pt, font=\scriptsize] at (-2.9,0) {\textbf{Missingness}\\Measure rates and patterns; check whether absence is meaningful. Choose to preserve, impute, or remove with justification.};
+\node[flowbox, text width=5.25cm, minimum height=1.45cm, align=left, inner sep=7pt, font=\scriptsize] at (2.9,0) {\textbf{Duplicates}\\Check exact and near repeats and key uniqueness. Confirm that repeated rows represent the same entity before deduplicating.};
+\node[flowbox, text width=5.25cm, minimum height=1.45cm, align=left, inner sep=7pt, font=\scriptsize] at (-2.9,-2.1) {\textbf{Invalid or inconsistent values}\\Check schema, types, labels, units, formats, and allowed ranges. Standardize valid variants; correct or reject invalid values.};
+\node[flowbox, text width=5.25cm, minimum height=1.45cm, align=left, inner sep=7pt, font=\scriptsize] at (2.9,-2.1) {\textbf{Outliers}\\Flag unusual values with domain limits and robust summaries. Investigate each: an extreme may be valid, erroneous, or a measurement fault.};
 \end{tikzpicture}
 
 \vspace{0.2em}
-{\scriptsize Cleaning is not automatic deletion: record the evidence, action, and rationale for each issue.}
+{\footnotesize \textbf{Cleaning is a documented decision, not automatic deletion.} For each issue, record the evidence found, the action taken (keep, correct, impute, or remove), and why that action is justified.}
 \coursefooter
 \end{frame}
-\begin{frame}[plain]{Data cleaning: assessments before treatment}
+\begin{frame}{Data cleaning: common techniques}
 \begingroup\scriptsize
-\renewcommand{\arraystretch}{1.15}
-\begin{tabularx}{\textwidth}{>{\bfseries}p{2.3cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}p{4.7cm}}
-Issue & Assessments to run & Decision to document \\
+\renewcommand{\arraystretch}{1.1}
+\begin{tabularx}{\textwidth}{>{\bfseries}p{2.9cm} >{\raggedright\arraybackslash}X >{\raggedright\arraybackslash}X}
 \toprule
-Missing values & Count and percentage by column/row; inspect patterns and co-occurrence; ask whether absence has domain meaning. & Preserve signal, impute, or remove; define the column-specific rule. \\
-\addlinespace[0.2em]
-Duplicates & Check key uniqueness and exact/near matches; confirm the records describe the same entity or event. & Identify confirmed duplicates and document the removal rule. \\
-\addlinespace[0.2em]
-Invalid or inconsistent & Check schema, types, labels, units, formats, and allowed ranges. & Define canonical values and correction or rejection rules. \\
-\addlinespace[0.2em]
-Outliers & Check robust summaries and domain/time limits; investigate the source. & Classify as valid extreme or error; retain, correct, cap, transform, or remove with rationale. \\
+Issue & Detect & Treat \\
+\midrule
+Missing values & Missingness rates and matrix plots; Little's MCAR test & Mean/median/mode imputation; $k$-NN imputation; iterative imputation (MICE); missing-value indicator \\
+\addlinespace[0.15em]
+Duplicates & Key-uniqueness checks; hashing for exact matches; string similarity (Levenshtein, Jaro--Winkler) for near matches & Record linkage with blocking; MinHash/LSH at scale; keep-first or merge rule \\
+\addlinespace[0.15em]
+Invalid or inconsistent & Schema and type validation (e.g., pandera, Great Expectations); regular expressions; range and unit checks & Type coercion; category mapping to canonical labels; unit conversion; reject or flag \\
+\addlinespace[0.15em]
+Outliers & Tukey IQR fences; $z$-score and robust $z$-score (MAD); Isolation Forest; Local Outlier Factor & Winsorizing (capping); log or Box--Cox transform; robust scalers; remove only if erroneous \\
 \bottomrule
 \end{tabularx}
 \par\endgroup
-\vspace{0.3em}
+\vspace{0.1em}
 \begin{block}{Record and validate}
 Document the checks and decisions. Fit imputation within each training fold and apply it unchanged to held-out and production data.
 \end{block}
 \coursefooter
 \end{frame}
 \begin{frame}{Titanic / 2: cleaning decisions per column}
-\begin{columns}[T]
-\column{0.42\textwidth}
-\centering
-\optionalfigure{images/class16_titanic_missingness.pdf}{width=\linewidth}
-
-\vspace{0.3em}
-{\scriptsize Titanic data used in \texttt{notebooks/Class4\_DataEngineering.ipynb}, $n = 891$.\par}
-\column{0.56\textwidth}
-\begingroup\scriptsize
-\begin{tabularx}{\linewidth}{>{\ttfamily}l >{\raggedright\arraybackslash}p{1.25cm} >{\raggedright\arraybackslash}X}
-\normalfont\bfseries Column & \bfseries Policy & \bfseries Rationale \\
+\small
+\begin{tabularx}{\textwidth}{l l X}
 \toprule
-deck & explicit \texttt{Unknown} & 77\% missing: imputation would invent most values; missingness may be informative \\
-\addlinespace[0.3em]
-age & median (28.0) & numerical, moderate missingness; the median is robust to outliers \\
-\addlinespace[0.3em]
-embarked & mode (\texttt{S}) & two missing values: negligible effect \\
-\addlinespace[0.3em]
-embark\_town & explicit \texttt{Unknown} & duplicates \texttt{embarked} (see the $\chi^2$ ranking) \\
+Original column & Candidate policy & Assessment / rationale \\
+\midrule
+\texttt{cabin} & Preserve missingness & Often absent; derive a known/unknown indicator or a deck category with an explicit Unknown level. \\
+\texttt{age} & Median imputation & Inspect missingness and distributions; fit the median within each training fold. \\
+\texttt{embarked} & Mode or Unknown & Inspect missing entries; fit any mode using the training fold. \\
+\texttt{fare} & Validate / impute & Check range, extremes, and missingness in each supplied file. \\
+\texttt{passengerid} & Validate uniqueness & Audit repeated identifiers; equal passenger attributes alone do not establish duplicate records. \\
 \bottomrule
 \end{tabularx}
-\par\endgroup
-\vspace{0.4em}
-{\footnotesize The source analysis reports 107 duplicate-looking rows. Without a trusted identifier, equal feature values do not prove duplicated passengers: audit before dropping.\par}
-\end{columns}
 \coursefooter
 \end{frame}
 \begin{frame}{Feature construction from domain knowledge}
-\begin{itemize}
-\item Informative features usually originate from an understanding of the problem rather than from generic mathematical transformations.
-\item Domain-informed counts, ratios, and rules can be more interpretable, robust, and sometimes more predictive than generic transformations.
-\item Each constructed feature should be checked for redundancy with the variables from which it was derived.
-\item The rationale for every constructed feature should be stated explicitly, in one sentence.
-\end{itemize}
-\coursefooter
-\end{frame}
-\begin{frame}{Titanic / 3: construct candidates from domain rules}
-\begingroup\footnotesize
-\renewcommand{\arraystretch}{1.3}
-\begin{tabularx}{\textwidth}{>{\ttfamily}l >{\raggedright\arraybackslash}p{4.2cm} l >{\raggedright\arraybackslash}X}
-\normalfont\bfseries Feature & \bfseries Definition & \bfseries Scale & \bfseries Rationale \\
-\toprule
-family\_size & $\texttt{sibsp} + \texttt{parch} + 1$ & ratio & Passengers travelling together share their fate; survival rate rises from 0.30 (alone) to 0.72 (four members), then falls \\
-is\_alone & $\mathbf{1}[\texttt{family\_size} = 1]$ & binary & Isolates the largest and least favoured group (537 passengers) \\
-title & \texttt{man}$\to$Mr, \texttt{woman}$\to$Mrs, \texttt{child}$\to$Master & nominal & One-to-one relabelling of \texttt{who}: adds no information (identical $\chi^2$) \\
-\bottomrule
-\end{tabularx}
-\par\endgroup
-\vspace{0.6em}
-\begin{itemize}\footnotesize
-\item From \texttt{notebooks/Class4\_DataEngineering.ipynb}: each constructed feature is a short, explainable rule. A useful construction combines or transforms information; a bijective relabelling, such as \texttt{title}, only renames it.
-\item 	extbf{Ask:} Which transformation adds useful model capacity, and which merely renames an existing variable?
-\end{itemize}
-\coursefooter
-\end{frame}
-\begin{frame}{Titanic / 3: hypothesis before computation}
-\begin{block}{Hypothesis}
-Survival does not necessarily change monotonically with the number of family members travelling together.
+\pipelinefocus{3}
+\begin{block}{What is feature construction?}
+Deriving new variables from existing ones, guided by knowledge of the problem, so that a useful pattern becomes easier for the model to use.
 \end{block}
-\begin{itemize}
-\item \texttt{family\_size = sibsp + parch + 1} aggregates related counts.
-\item \texttt{is\_alone = 1[family\_size = 1]} introduces a threshold response.
-\item \texttt{title} derived deterministically from \texttt{who} only relabels existing information in this teaching example.
-\end{itemize}
-\textbf{Predict:} Would \texttt{is\_alone} help logistic regression more than a decision tree? Why?
 \vspace{0.4em}
-\textit{We will revisit this hypothesis when we examine family-size survival rates.}
+\textbf{Main methods}
+\begin{columns}[T]
+\column{0.46\textwidth}
+\begin{itemize}
+\item Arithmetic combinations
+\item Aggregations
+\item Binning
+\item Indicators and rules
+\end{itemize}
+\column{0.46\textwidth}
+\begin{itemize}
+\item Date and time parts
+\item Text extraction
+\item Interactions
+\item Rolling windows
+\end{itemize}
+\end{columns}
 \coursefooter
 \end{frame}
-\begin{frame}{Feature construction for streams and sensors}
+\begin{frame}{Streams and sensors: rolling mean and window size}
 \begin{columns}[T]
-\column{0.5\textwidth}
+\column{0.62\textwidth}
 \centering
-\optionalfigure{images/class16_stream_features.pdf}{width=\linewidth}
+\optionalfigure{images/class16_rolling_mean_windows.pdf}{width=\linewidth,height=0.5\textheight,keepaspectratio}
 
 {\tiny One batch generated by \texttt{pasteurization/synth\_sensors.py}.\par}
-\column{0.48\textwidth}
-\begingroup\footnotesize
-Features computed from the raw temperature $T_t$:
+\vspace{0.3em}
+\footnotesize Example with $w=3$:\\[0.2em]
+\begin{tabular}{l|ccccc}
+$t$ & 1 & 2 & 3 & 4 & 5 \\
+\hline
+$x_t$ & 10 & 12 & 14 & 20 & 18 \\
+$\bar{x}_t$ & -- & -- & 12 & 15.3 & 17.3 \\
+\end{tabular}\\[0.2em]
+{\scriptsize $\bar{x}_4 = (12+14+20)/3$; the first $w-1$ values are undefined.}
+\column{0.36\textwidth}
+\footnotesize
+\textbf{Rolling mean} of the temperature $T_t$:
+\[\bar{T}_t = \frac{1}{w}\sum_{i=0}^{w-1} T_{t-i}\]
 \begin{itemize}
-\item \textbf{Rolling mean:} $\bar{T}_t = \frac{1}{w}\sum_{i=0}^{w-1} T_{t-i}$; smooths noise and indicates stability, at the cost of a lag of about $w/2$ samples.
-\item \textbf{Rate of change:} $\dot{T}_t = (T_t - T_{t-1})/\Delta t$; separates HeatUp ($> 0$) from Cool ($< 0$), which the raw value cannot.
-\item \textbf{Time in phase:} seconds since the last change of state; a state-aware feature that distinguishes a slow heating from a normal one.
+\item Small $w$ ($5$): follows the signal closely, little smoothing.
+\item Medium $w$ ($15$): removes noise, with a visible delay.
+\item Large $w$ ($45$): very smooth, but lags by about $w/2$ samples and flattens the Hold plateau.
 \end{itemize}
-All three use only past observations, so they can be computed online, one sample at a time, exactly as in production.
-\par\endgroup
+Choose $w$ to trade noise reduction against delay.
+\end{columns}
+\coursefooter
+\end{frame}
+\begin{frame}{Streams and sensors: rate of change}
+\begin{columns}[T]
+\column{0.62\textwidth}
+\centering
+\optionalfigure{images/class16_rate_of_change.pdf}{width=\linewidth,height=0.5\textheight,keepaspectratio}
+
+{\tiny One batch generated by \texttt{pasteurization/synth\_sensors.py}.\par}
+\vspace{0.3em}
+\footnotesize Example with $\Delta t = 1$ s:\\[0.2em]
+\begin{tabular}{l|cccccc}
+$t$ & 1 & 2 & 3 & 4 & 5 & 6 \\
+\hline
+state & Idle & Idle & HeatUp & HeatUp & HeatUp & Hold \\
+$T_t$ & 20 & 20 & 22 & 25 & 28 & 28 \\
+$\dot{T}_t$ & -- & 0 & 2 & 3 & 3 & 0 \\
+\end{tabular}
+\column{0.36\textwidth}
+\footnotesize
+\textbf{Rate of change:}
+\[\dot{T}_t = \frac{T_t - T_{t-1}}{\Delta t}\]
+\begin{itemize}
+\item Positive in HeatUp, negative in Cool, near zero elsewhere.
+\item The raw value $T_t$ cannot separate these regimes: $28$ °C may be heating or cooling.
+\item The first sample is undefined: it has no predecessor.
+\end{itemize}
+\end{columns}
+\coursefooter
+\end{frame}
+\begin{frame}{Streams and sensors: time in phase}
+\begin{columns}[T]
+\column{0.62\textwidth}
+\centering
+\optionalfigure{images/class16_time_in_phase.pdf}{width=\linewidth,height=0.5\textheight,keepaspectratio}
+
+{\tiny One batch generated by \texttt{pasteurization/synth\_sensors.py}.\par}
+\vspace{0.3em}
+\footnotesize Example with $\Delta t = 1$ s:\\[0.2em]
+\begin{tabular}{l|cccccc}
+$t$ & 1 & 2 & 3 & 4 & 5 & 6 \\
+\hline
+state & Idle & Idle & HeatUp & HeatUp & HeatUp & Hold \\
+time in phase [s] & 0 & 1 & 0 & 1 & 2 & 0 \\
+\end{tabular}
+\column{0.36\textwidth}
+\footnotesize
+\textbf{Time in phase:} seconds since the last change of state.
+\begin{itemize}
+\item The counter resets to $0$ whenever the state changes.
+\item It distinguishes a slow heating from a normal one: the same temperature after $10$ s or $40$ s in HeatUp means different things.
+\item It uses only past observations, so it can be computed online, one sample at a time.
+\item The state label is categorical: it can be encoded as in Class 14 (e.g., one-hot) and used beside this feature.
+\end{itemize}
 \end{columns}
 \coursefooter
 \end{frame}
 \begin{frame}{Represent candidates before selection}
+\pipelinefocus{4}
 \begin{itemize}
 \item Selection methods need features in a representation they can use: encode categorical variables and scale numeric ones when the method is scale-sensitive.
-\item Class 14 covered one-hot, ordinal, target, and cyclic encodings; the choice depends on the variable and the model.
+\item One-hot, ordinal, target, and cyclic encodings offer different representations; the choice depends on the variable and the model.
 \item PCA transforms the feature space into components. It constructs a new representation rather than selecting original columns.
 \item Fit imputers, scalers, PCA, target-dependent selectors, and other learned transformations using training folds only; use out-of-fold target encoding.
 \end{itemize}
 \coursefooter
 \end{frame}
-\begin{frame}{Titanic / 4: representation and reproducible preprocessing}
-\begin{columns}[T]
-\column{0.50\textwidth}
-\begin{block}{Numeric branch}
-\small \texttt{age}, \texttt{fare}, \texttt{family\_size}\\
-$\downarrow$ fit median imputer on train\\
-$\downarrow$ fit scaler on train (if needed)
-\end{block}
-\column{0.48\textwidth}
-\begin{block}{Categorical branch}
-\small \texttt{sex}, \texttt{embarked}\\
-$\downarrow$ handle missing category / mode\\
-$\downarrow$ fit one-hot encoder on train
-\end{block}
-\end{columns}
-\vspace{0.4em}
-\begin{block}{Invariant}
-The validation/test and production data are \emph{transformed} with the training-fitted objects: they are never used to estimate transformation parameters.
-\end{block}
-\textbf{Question:} What changes if the median is computed before cross-validation?
-\coursefooter
-\end{frame}
-\begin{frame}{Feature selection: filter, wrapper, embedded}
+\begin{frame}{Feature selection: filter and wrapper}
+\pipelinefocus{5}
 \begingroup\small
-Given $d$ candidate features, selection seeks a subset $S \subseteq \{1, \dots, d\}$ that maximizes a criterion $J(S)$. The three families differ in how $J$ is defined.
+Given $d$ candidate features, selection seeks a subset $S \subseteq \{1, \dots, d\}$ that maximizes a criterion $J(S)$. The two families differ in how $J$ is defined.
 \par\endgroup
 \vspace{0.5em}
 \begin{tabularx}{\textwidth}{>{\bfseries}l X}
 Filter & $J$ is a model-independent statistic computed for each feature, e.g.\ correlation, mutual information, or the $\chi^2$ statistic. \\
 \addlinespace[0.3em]
 Wrapper & $J(S)$ is the validation performance of a model trained on $S$; subsets are explored by a search strategy (e.g.\ forward or backward selection). \\
-\addlinespace[0.3em]
-Embedded & Selection occurs during training, e.g.\ the least absolute shrinkage and selection operator (Lasso), $\min_{\boldsymbol\beta} \|\mathbf{y} - X\boldsymbol\beta\|_2^2 + \lambda\|\boldsymbol\beta\|_1$, which sets some coefficients exactly to zero. \\
 \bottomrule
 \end{tabularx}
-\coursefooter
-\end{frame}
-\begin{frame}{Titanic / 5: the $\chi^2$ test of independence}
-\begin{columns}[T]
-\column{0.44\textwidth}
-\begingroup\small
-Observed counts $O$ (expected $E$ under independence), \texttt{sex} $\times$ \texttt{survived}:
-\par\endgroup
-\vspace{0.4em}
-\centering
-\begingroup\footnotesize
-\begin{tabular}{l c c c}
-& died & survived & total \\
-\toprule
-female & 81 \textcolor{coursegray}{(193.5)} & 233 \textcolor{coursegray}{(120.5)} & 314 \\
-male & 468 \textcolor{coursegray}{(355.5)} & 109 \textcolor{coursegray}{(221.5)} & 577 \\
-\midrule
-total & 549 & 342 & 891 \\
-\bottomrule
-\end{tabular}
-\par\endgroup
-\vspace{0.6em}
-\[
-\chi^2 = \sum_{\text{cells}} \frac{(O - E)^2}{E} = 263.1
-\]
-\vspace{-0.4em}
-{\footnotesize with $E = (\text{row total} \times \text{column total})/n$.\par}
-\column{0.54\textwidth}
-\begin{itemize}\footnotesize
-\item If \texttt{sex} and \texttt{survived} were independent, each cell would contain approximately its expected count $E$.
-\item The larger $\chi^2$, the further the observed table is from independence, i.e.\ the stronger the association with the target ($p < 10^{-58}$ here, with 1 degree of freedom).
-\item It is a filter criterion: computed per feature, before and independently of any model.
-\item \textbf{Caution:} \texttt{sklearn.feature\_selection.chi2} treats feature values as non-negative counts. On label-encoded nominal variables it is not a contingency-table independence test; the score depends on arbitrary codes (92.7 versus 263.1 for \texttt{sex}).
-\end{itemize}
-\end{columns}
-\coursefooter
-\end{frame}
-\begin{frame}{Titanic / 5: a highly predictive feature may be invalid}
-\begin{columns}[T]
-\column{0.52\textwidth}
-\centering
-\optionalfigure{images/class16_titanic_chi2.pdf}{width=\linewidth}
-\column{0.46\textwidth}
-\begin{itemize}\footnotesize
-\item \textbf{\textcolor[HTML]{B03A2E}{alive}} attains the maximum $\chi^2 = n = 891$: it restates the target (\texttt{yes}/\texttt{no}). A filter ranks a leaking feature first; it must be removed by inspection, not by score.
-\item \textbf{\textcolor{coursegold}{embarked}} and \textbf{\textcolor{coursegold}{embark\_town}} have identical scores: they encode the same information, so one of them is redundant.
-\item \texttt{who}, \texttt{adult\_male}, and \texttt{sex} rank high together because they overlap strongly; a univariate filter cannot detect this redundancy.
-\end{itemize}
-\end{columns}
-\vspace{0.3em}
-{\scriptsize $\chi^2$ test of independence on the contingency table of each feature with \texttt{survived}; missing values treated as an explicit category.\par}
-\coursefooter
-\end{frame}
-\begin{frame}{Titanic / 6: is \texttt{is\_alone} redundant?}
-\centering
-\optionalfigure{images/class16_titanic_family_size.pdf}{width=0.92\textwidth,height=0.42\textheight,keepaspectratio}
-
-\vspace{0.2em}
-\begin{itemize}\footnotesize
-\item \textbf{Informationally redundant:} \texttt{is\_alone} is a deterministic function of \texttt{family\_size}; it adds no information, which would justify removing it.
-\item \textbf{Not redundant for a linear model:} survival is non-monotonic in \texttt{family\_size}, so its linear correlation with \texttt{survived} is only $0.02$, whereas that of \texttt{is\_alone} is $-0.20$. The indicator acts as a non-linear transformation that a linear model cannot build by itself.
-\item Redundancy is therefore relative to the model family: a decision tree can recover \texttt{is\_alone} with a single split; logistic regression cannot. The notebook keeps it, and the test accuracy of its logistic regression rises from 0.804 to 0.810 (one additional correct prediction out of 179).
-\end{itemize}
 \coursefooter
 \end{frame}
 \begin{frame}{Titanic / 6: engineering changes feature dependencies}
@@ -388,79 +395,94 @@ total & 549 & 342 & 891 \\
 \column{0.43\textwidth}
 \begin{itemize}\footnotesize
 \item Pearson correlations after cleaning (\texttt{age} imputed with the median).
-\item \texttt{family\_size} is strongly correlated with its components \texttt{sibsp} ($0.89$) and \texttt{parch} ($0.78$): keeping all three adds collinearity without new information.
-\item \texttt{is\_alone} has a larger linear association with \texttt{survived} ($-0.20$) than \texttt{family\_size} ($0.02$), as discussed in the selection example.
-\item Pearson correlation measures only linear dependence; a near-zero value does not imply that a feature is uninformative.
+\item \texttt{family\_size} is strongly correlated with its components \texttt{sibsp} ($0.89$) and \texttt{parch} ($0.78$): keeping all three adds collinearity.
+\item \texttt{is\_alone} has a larger linear association with \texttt{survived} ($-0.20$) than \texttt{family\_size} ($0.02$).
+\item Pearson measures only linear dependence; a near-zero value does not make a feature uninformative.
+\item \textbf{Spearman} is Pearson on ranks: it captures monotonic association and resists outliers. Prefer it for skewed, ordinal, or curved data; use Pearson for roughly linear data.
 \end{itemize}
 \end{columns}
 \coursefooter
 \end{frame}
-\begin{frame}{Titanic / 7: split first, then engineer within folds}
-\small
-\begin{block}{Incorrect: validation information enters the pipeline}
-\centering Whole data $\rightarrow$ imputation + selection $\rightarrow$ cross-validation $\rightarrow$ reported score
+\begin{frame}{Modeling: what it is and main types}
+\pipelinefocus{6}
+\begin{block}{What is a model?}\small
+A function $f_{\theta}$ that maps features to a prediction, $\hat{y} = f_{\theta}(\mathbf{x})$, with parameters $\theta$ estimated from data. Training and evaluation are the subject of Class 18.
 \end{block}
-\begin{block}{Correct: end-to-end pipeline fitted for each training fold}
-\centering Split $\rightarrow$ [train-fold: impute $\rightarrow$ encode $\rightarrow$ select $\rightarrow$ fit model] $\rightarrow$ validate held-out fold
-\end{block}
-\begin{itemize}
-\item Use stratification for this classification example; reserve an untouched test set for the final estimate.
-\item Supervised selection and hyperparameter tuning belong \emph{inside} cross-validation (nested CV if estimating tuned-model generalization with CV).
-\item Deterministic row-wise rules are safe to predefine, but still check availability and deployment equivalence.
+\begin{columns}[T]
+\column{0.49\textwidth}
+\textbf{By learning paradigm}
+\begin{itemize}\footnotesize
+\item \textbf{Supervised:} learns from labeled pairs $(\mathbf{x}_i, y_i)$; classification or regression. Titanic: predict \texttt{survived}.
+\item \textbf{Unsupervised:} no target; finds structure, e.g.\ clustering or PCA (Class 14).
+\item \textbf{Self-supervised:} the target is built from the data itself, e.g.\ word2vec (Class 14).
+\item \textbf{Reinforcement:} learns from rewards obtained by interacting with an environment.
 \end{itemize}
+\column{0.49\textwidth}
+\textbf{By model family}
+\begin{itemize}\footnotesize
+\item \textbf{Linear:} linear and logistic regression; interpretable.
+\item \textbf{Tree-based:} decision trees, random forests, gradient boosting; capture non-linearity.
+\item \textbf{Instance-based:} $k$-nearest neighbours.
+\item \textbf{Neural networks:} multilayer perceptrons, CNNs, RNNs; see Class 13 for families by data type.
+\end{itemize}
+\end{columns}
 \coursefooter
 \end{frame}
-\begin{frame}{Titanic / 8: ablation evidence, not extra columns}
-\small
-\begin{tabularx}{\textwidth}{l X c}
-\bfseries Experiment & \bfseries Difference vs. previous model & \bfseries Test accuracy \\
-\toprule
-A & Logistic regression without \texttt{is\_alone} & $0.804$ \\
-B & Same notebook setup, add \texttt{is\_alone} & $0.810$ \\
-C & Remove redundant candidate(s) & \emph{To measure} \\
-D & Alternative model family / selected subset & \emph{To measure} \\
-\bottomrule
-\end{tabularx}
-\vspace{0.4em}
-\begin{block}{Interpretation}
-The existing notebook reports $0.804 \rightarrow 0.810$ (one additional correct prediction among 179 test examples). This is \emph{not} enough to claim statistically reliable improvement.
+\begin{frame}{Ablation: measuring what each component contributes}
+\begin{block}{What is an ablation?}\small
+A controlled experiment that removes (or adds) one component of a system, such as a feature, a feature group, or a preprocessing step, and measures how the performance changes.
 \end{block}
-\textbf{Protocol for C/D:} Same splits, fitted pipeline per fold, cross-validated scores and variation; evaluate the untouched test set once at the end.
+\footnotesize
+With a score $S$ (higher is better), the contribution of a component $c$ is
+\[
+\Delta_c = S(\text{full}) - S(\text{full without } c).
+\]
+\begin{columns}[T]
+\column{0.49\textwidth}
+\textbf{Two directions}
+\begin{itemize}\footnotesize
+\item \textbf{Backward (remove):} start from the full set and drop one component at a time.
+\item \textbf{Forward (add):} start from a baseline and add one component at a time.
+\end{itemize}
+\column{0.49\textwidth}
+\textbf{Principles}
+\begin{itemize}\footnotesize
+\item Change one thing at a time; keep data, model, and metric fixed.
+\item Repeat the measurement and report the variation.
+\item $\Delta_c$ holds \emph{in this context}: correlated features compensate for each other.
+\end{itemize}
+\end{columns}
 \coursefooter
 \end{frame}
-\begin{frame}{Leakage and availability checks}
-\begin{itemize}
+\begin{frame}{Good practices in feature engineering}
+\begin{columns}[T]
+\column{0.49\textwidth}
+\textbf{Before modeling}
+\begin{itemize}\footnotesize
+\item \textbf{Raw data:} keep an untouched copy; apply every change in code.
+\item \textbf{Curation:} maintain a data dictionary, provenance, and validation rules.
+\item \textbf{Cleaning:} record evidence, action, and rationale for each issue.
+\item \textbf{Construction:} state each feature's rationale in one sentence and check redundancy with its source variables.
+\item \textbf{Selection:} fix the criterion before looking at results; prefer Spearman for monotonic, non-linear relations.
+\end{itemize}
+\column{0.49\textwidth}
+\textbf{Avoiding leakage}
+\begin{itemize}\footnotesize
 \item Is the feature available at prediction time, or does it use information from the future?
 \item Does it encode a post-decision outcome, such as the result of a manual review?
 \item Is it computed identically in production and in the notebook?
 \item Does it depend on joins or upstream systems that may be unavailable at inference time?
+\item For streams, use only past observations (causal windows).
 \end{itemize}
+\end{columns}
 \vspace{0.3em}
-{\footnotesize The complete taxonomy of leakage (target, preprocessing, temporal, group, duplicate, model selection) was presented in Class 13.}
-\coursefooter
-\end{frame}
-\begin{frame}{Titanic / 9: production-ready feature contract}
-\small
-\begin{tabularx}{\textwidth}{l X}
-\toprule
-\bfseries Item & \bfseries Deliverable / check \\
-\midrule
-Data & Source and snapshot version, schema, missingness and range tests \\
-Transformations & Serializable imputer, encoder, selector, and model (single pipeline) \\
-Feature definitions & \texttt{family\_size}, \texttt{is\_alone}: exact formulas and types \\
-Availability & Features exist at the prediction moment; \texttt{alive} excluded \\
-Reproducibility & Code version, split seed, training config, metrics, artifact version \\
-Monitoring & Missingness, category changes, input drift, and performance when labels arrive \\
-\bottomrule
-\end{tabularx}
-\vspace{0.3em}
-\textbf{Take-away:} A notebook transformation becomes an engineering artifact only when it is reproducible, versioned, and executed consistently at inference time.
+{\footnotesize The complete taxonomy of leakage (target, preprocessing, temporal, group, duplicate, model selection) was presented in Class 13. Measure each feature's contribution with an ablation.}
 \coursefooter
 \end{frame}
 \begin{frame}{Repository connections}
 \repoactivity{
 \begin{itemize}
-\item \texttt{notebooks/Class4\_DataEngineering.ipynb} covers cleaning, $\chi^2$ selection, and domain-driven construction end to end.
+\item \texttt{notebooks/Class4\_DataEngineering.ipynb} illustrates cleaning and selection using the Seaborn variant. Its extra columns and reported model scores should not be transferred to the Kaggle case without rerunning the analysis.
 \item \texttt{pasteurization/synth\_sensors.py} provides a contrastive online feature example (\texttt{dTdt}); rolling means must use past/current observations only.
 \item \texttt{streamlit/modeling.py} saves the fitted scaler together with the model, illustrating that preprocessing decisions must be persisted with the model rather than applied once in a notebook.
 \end{itemize}
