@@ -64,7 +64,11 @@ Trigger & When it fires \\
 \toprule
 Schedule & A fixed cadence, for example nightly or weekly. \\
 Data volume & Enough new labeled data has accumulated to justify a refresh. \\
+<<<<<<< HEAD
 Drift signal & A monitoring alert from Class 31's detectors fires. \\
+=======
+Drift signal & A monitoring alert from Class 32's detectors fires. \\
+>>>>>>> upstream/HEAD
 Performance decay & A tracked metric drops below an agreed threshold. \\
 Manual request & A team member has a specific reason to trigger a run. \\
 \bottomrule
@@ -123,8 +127,13 @@ Manual request & A team member has a specific reason to trigger a run. \\
 \begin{frame}{Where continuous training meets CI/CD}
 \begin{itemize}
 \item The retraining job itself can be triggered the same way as any other automated workflow: on a schedule or an event.
+<<<<<<< HEAD
 \item Class 30's GitHub Actions cron trigger is a small but real building block for exactly this kind of scheduled job.
 \item Packaging, testing, and versioning from Class 30 apply to the training code path, not only the serving code path.
+=======
+\item Class 31's GitHub Actions cron trigger is a small but real building block for exactly this kind of scheduled job.
+\item Packaging, testing, and versioning from Class 31 apply to the training code path, not only the serving code path.
+>>>>>>> upstream/HEAD
 \end{itemize}
 \coursefooter
 \end{frame}
@@ -202,7 +211,11 @@ If a retraining pipeline ran fully unattended, which single gate would you refus
 \item Automating a bad process just produces bad models faster; the gates matter more than the automation.
 \end{itemize}}
 {Teams should now be able to describe, even without building it, what a retraining pipeline for their own project would trigger on and what would stop a bad candidate.}
+<<<<<<< HEAD
 {Class 30 returns to the delivery side of the pipeline: Docker and GitHub Actions for packaging and shipping what Class 28 and Class 29 have described.}
+=======
+{Class 31 returns to the delivery side of the pipeline: Docker and GitHub Actions for packaging and shipping what Class 28 and Class 29 have described.}
+>>>>>>> upstream/HEAD
 {Training and delivery are two automatable paths that both need the same discipline: gates, versioning, and observability.}
 
 \end{document}

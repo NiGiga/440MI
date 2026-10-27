@@ -23,7 +23,7 @@ st.title("Pasteurization Process – Live Sensor Dashboard")
 st.sidebar.header("🔌 Connection Settings")
 
 default_ip = st.session_state.get("ip", "127.0.0.1")
-default_port = st.session_state.get("port", "8000")
+default_port = st.session_state.get("port", "8001")
 
 ip = st.sidebar.text_input("Server IP", default_ip)
 port = st.sidebar.text_input("Server Port", default_port)

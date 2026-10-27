@@ -1,0 +1,234 @@
+\input{common}
+
+\title{Class 15: Encoding and Embedding Practice}
+\subtitle{Represent the categories, inspect the result, and state what the evidence supports}
+\author{\coursename}
+\date{23 October}
+
+\begin{document}
+
+\frame{\titlepage \coursefooter}
+
+\begin{frame}{Attributes in the prepared Titanic dataset}
+\footnotesize
+\begin{tabularx}{\textwidth}{>{\ttfamily}l X l}
+\toprule
+Attribute & Description & Role in this activity \\
+\midrule
+sex & Passenger sex recorded in the dataset & Nominal feature \\
+pclass & Ticket class: 1st, 2nd, or 3rd & Ordered feature \\
+embarked & Port of embarkation: C = Cherbourg, Q = Queenstown, S = Southampton & Nominal feature \\
+age & Passenger age in years; missing values already imputed & Numeric feature \\
+fare & Passenger fare & Numeric feature \\
+sibsp & Number of siblings and spouses aboard & Numeric feature \\
+parch & Number of parents and children aboard & Numeric feature \\
+survived & Outcome: 0 = did not survive; 1 = survived & Target \\
+\bottomrule
+\end{tabularx}
+
+\vspace{0.5em}
+\begin{alertblock}{Scope of the supplied CSV}
+This prepared file contains eight passenger attributes for all 891 passengers. It is a selected, imputed subset for this exploratory activity; other fields from the full Titanic dataset are not included.
+\end{alertblock}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Today's question: is this a useful representation?}
+\begin{enumerate}
+\item Build encodings for Titanic categories and inspect the resulting feature matrix.
+\item Explore how the categories relate to survival, without fitting a predictive model.
+\item Construct a PCA projection of passenger profiles grouped by embarkation port.
+\item Separate evidence about representation quality from evidence about model contribution.
+\end{enumerate}
+\begin{block}{Prepared data}
+Use all 891 rows in the prepared Titanic dataset for today's encoding and association explorations. No predictive model is evaluated here, so a train/test split is unnecessary. Imputation choices are the focus of Class 16. In Class 18, create the split before fitting any preprocessing for model evaluation.
+\end{block}
+\vspace{0.2em}
+\centering\small\href{../notebooks/Class15_Titanic_Imputed.csv}{Download the prepared Titanic dataset (CSV)}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Pick a representation that matches the category}
+\begin{tabularx}{\textwidth}{>{\ttfamily}l l X}
+\toprule
+Feature & Structure & Representation to inspect \\
+\midrule
+\texttt{sex} & Nominal, two categories & One-hot; no natural order \\
+\texttt{embarked} & Nominal, three ports & One-hot; check unseen-category behavior \\
+\texttt{pclass} & Ordered categories & Compare one-hot with ordinal codes $1,2,3$ \\
+\bottomrule
+\end{tabularx}
+\vspace{0.7em}
+\begin{itemize}
+\item Ordinal codes preserve order but add a distance assumption: the step from 1 to 2 equals the step from 2 to 3.
+\item One-hot encoding preserves category identity without adding an order.
+\item A learned or PCA-based embedding assigns coordinates; what those coordinates mean depends on how they were learned.
+\end{itemize}
+\coursefooter
+\end{frame}
+
+\begin{frame}{One-hot turns categories into explicit columns}
+\small
+\centering
+\begin{tabular}{c c c | c c | c c c}
+\toprule
+ & \multicolumn{2}{c|}{Input categories} & \multicolumn{2}{c|}{Output: sex} & \multicolumn{3}{c}{Output: embarked} \\
+Passenger & \texttt{sex} & \texttt{port} & female & male & C & Q & S \\
+\midrule
+A & female & C & \colorbox{coursegold}{\textcolor{white}{\makebox[1.5em]{\textbf{1}}}} & \colorbox{courseice}{\makebox[1.5em]{0}} & \colorbox{coursegold}{\textcolor{white}{\makebox[1.5em]{\textbf{1}}}} & \colorbox{courseice}{\makebox[1.5em]{0}} & \colorbox{courseice}{\makebox[1.5em]{0}} \\
+B & male & S & \colorbox{courseice}{\makebox[1.5em]{0}} & \colorbox{coursegold}{\textcolor{white}{\makebox[1.5em]{\textbf{1}}}} & \colorbox{courseice}{\makebox[1.5em]{0}} & \colorbox{courseice}{\makebox[1.5em]{0}} & \colorbox{coursegold}{\textcolor{white}{\makebox[1.5em]{\textbf{1}}}} \\
+C & female & Q & \colorbox{coursegold}{\textcolor{white}{\makebox[1.5em]{\textbf{1}}}} & \colorbox{courseice}{\makebox[1.5em]{0}} & \colorbox{courseice}{\makebox[1.5em]{0}} & \colorbox{coursegold}{\textcolor{white}{\makebox[1.5em]{\textbf{1}}}} & \colorbox{courseice}{\makebox[1.5em]{0}} \\
+\bottomrule
+\end{tabular}
+
+\vspace{0.9em}
+\begin{columns}[T]
+\column{0.48\textwidth}
+\begin{block}{What changed?}
+One category becomes one column. The active column records the observed category; no artificial order is introduced.
+\end{block}
+\column{0.48\textwidth}
+\begin{alertblock}{What to check?}
+Fit columns on the activity dataset. Confirm expected levels and document how an unseen value is handled at transform time.
+\end{alertblock}
+\end{columns}
+\coursefooter
+\end{frame}
+
+\newcommand{\qcard}[7]{%
+\begin{minipage}[t]{0.485\textwidth}
+\colorbox{courseblue}{\parbox{\dimexpr\linewidth-2\fboxsep}{\color{white}\textbf{#1}\hfill\small #2}}\\[-0.1em]
+\colorbox{courseice}{\parbox{\dimexpr\linewidth-2\fboxsep}{\scriptsize
+{\color{coursegold}\textbf{How}} \ \texttt{#3}\\[0.2em]
+{\color{coursegold}\textbf{Evidence}} \ #4\\[0.2em]
+{\color{coursegold}\textbf{Says}} \ #5\\[0.2em]
+{\color{coursegreen}\textbf{\char`\+\ Good}} \ #6\\[0.2em]
+{\color{red!70!black}\textbf{\char`\-\ Bad}} \ #7}}
+\end{minipage}}
+
+\newcommand{\qstrip}[3]{%
+\colorbox{courseblue}{\parbox{\dimexpr\textwidth-2\fboxsep}{\color{white}\footnotesize\textbf{Quality check}\hfill #1}}\\[-0.1em]
+\colorbox{courseice}{\parbox{\dimexpr\textwidth-2\fboxsep}{\footnotesize
+{\color{coursegreen}\textbf{\char`\+\ Good}} \ #2\\[0.2em]
+{\color{red!70!black}\textbf{\char`\-\ Bad}} \ #3}}}
+
+\begin{frame}{First evaluate representation quality}
+\centering
+\qcard{Validity}{Are the levels preserved?}{enc.get\_feature\_names\_out()}{Learned categories and output column names}{Expected levels are preserved}{\texttt{sex\_female, sex\_male, embarked\_C/Q/S}}{A missing level, or a stray \texttt{embarked\_nan} column}\hfill
+\qcard{Robustness}{Does an unseen value break it?}{OneHotEncoder(handle\_unknown="ignore")}{Transform a row with an unseen value}{Behavior is documented}{Unseen port \texttt{"X"} becomes an all-zero block, no error}{Crash at transform time, or the behavior is never checked}
+
+\vspace{0.6em}
+\qcard{Complexity}{Is the size manageable?}{Z.shape; Z.nnz / (n * p)}{Output columns and matrix density}{Size and sparsity are manageable}{8 columns for 3 features, mostly zeros}{An ID-like column with 891 levels gives 891 columns}\hfill
+\qcard{Exploratory signal}{Do groups differ?}{df.groupby("embarked").agg(...)}{Category counts and survival rates per group}{Group differences suggest a hypothesis}{C: 168 passengers, 55\% survived; S: 646, 34\%. Report counts with rates}{Claiming Q improves a model from a 77-passenger rate}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Check category coverage and compare group rates}
+\begin{columns}[T]
+\column{0.72\textwidth}
+\centering
+\includegraphics[width=\linewidth]{figures/class15_embarked_diagnostics.pdf}
+\column{0.26\textwidth}
+\small
+\begin{block}{Read the chart}
+All ports appear in the dataset, but their counts differ. Compare the survival rates while keeping those sample sizes in view.
+\end{block}
+\end{columns}
+\vspace{0.3em}
+\qstrip{Exploratory signal \textbullet\ Validity}{All three ports present; counts shown beside rates (C 168, Q 77, S 646). Differences are read as a hypothesis.}{Comparing rates without sample sizes, or claiming the encoding improves held-out predictions.}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Association heatmaps: read each statistic on its own scale}
+\centering
+\includegraphics[width=0.91\textwidth,height=0.52\textheight,keepaspectratio]{figures/class15_association_heatmaps.pdf}
+\vspace{0.2em}
+\qstrip{Exploratory signal}{Spearman $\rho$ read as signed rank association; $\chi^2$ colors read as evidence against independence ($p$-values), each on its own scale.}{Comparing colors across panels, or treating a small $p$-value as effect size.}
+\coursefooter
+\end{frame}
+
+\begin{frame}{PCA shows how original features align with the profile axes}
+\begin{columns}[T]
+\column{0.64\textwidth}
+\centering
+\includegraphics[width=\linewidth,height=0.56\textheight,keepaspectratio]{figures/class15_port_profile_pca.pdf}
+\column{0.32\textwidth}
+\footnotesize
+\begin{itemize}
+\item Points: three port profiles, built without \texttt{survived}.
+\item Arrows: correlations of original features with PC1 and PC2.
+\item Similar directions suggest features that vary together in these profiles.
+\end{itemize}
+\end{columns}
+\vspace{0.3em}
+\qstrip{Complexity \textbullet\ Exploratory signal}{Profiles built without \texttt{survived}; arrows read as how features align with PC1 and PC2.}{Reading ``two PCs explain 100\%'' as predictive value: with three centered profiles it is guaranteed.}
+\coursefooter
+\end{frame}
+
+\begin{frame}{One-hot PCA is not a useful port embedding here}
+\begin{itemize}
+\item Three one-hot port columns have at most two independent directions after centering.
+\item PCA to two components therefore keeps all centered variation; it mostly rotates the same information.
+\item The resulting coordinates do not learn that two ports are behaviorally or predictively similar.
+\item Use the profile PCA as a small visualization exercise; keep one-hot as the clear baseline representation.
+\end{itemize}
+\begin{block}{Representation quality today}
+Check that categories are preserved, the matrix is manageable, unknown values are handled, and any visual or target association is interpreted within its limits.
+\end{block}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Can we say encoding contributed to modeling? Not yet.}
+\begin{columns}[T]
+\column{0.48\textwidth}
+\textbf{We can assess today}
+\begin{itemize}
+\item Correctness and category coverage
+\item Unknown-category handling
+\item Number and density of features
+\item Descriptive association with the target
+\item Structure of the PCA profile plot
+\end{itemize}
+\column{0.48\textwidth}
+\textbf{We cannot claim today}
+\begin{itemize}
+\item Better generalization
+\item Higher predictive performance
+\item That an embedding beats one-hot
+\item That target association adds value alongside other features
+\end{itemize}
+\end{columns}
+\vspace{0.5em}
+\begin{alertblock}{Conclusion}
+Encoding changes how a model receives information; it does not create new information by itself. Measuring predictive contribution requires a downstream model.
+\end{alertblock}
+\coursefooter
+\end{frame}
+
+\begin{frame}{How Class 18 will test contribution fairly}
+\begin{enumerate}
+\item Create one stratified train/test split and keep it fixed across the comparisons.
+\item Compare a baseline without the feature, one-hot \texttt{embarked}, and any candidate embedding.
+\item Fit every learned transformation on training data only; evaluate once on the held-out test data. Start from raw data, not this all-rows imputed activity fixture.
+\item Choose a suitable metric in advance (e.g., ROC AUC or balanced accuracy) and compare the change, not just one score.
+\item Repeat across folds or seeds if time permits; report uncertainty and added complexity.
+\end{enumerate}
+\begin{block}{Today's deliverable}
+A representation table, a short association interpretation, the PCA profile plot, and one explicit claim the evidence does \emph{not} support yet.
+\end{block}
+\coursefooter
+\end{frame}
+
+\begin{frame}{Debrief and transition}
+\begin{itemize}
+\item Which encoding assumptions were reasonable for \texttt{sex}, \texttt{embarked}, and \texttt{pclass}?
+\item Did the PCA plot describe category profiles, or did it prove predictive usefulness?
+\item Which representation would you carry forward as a baseline, and why?
+\end{itemize}
+\begin{block}{Next: Class 16}
+Feature engineering returns to the raw data and examines cleaning, curation, missing values, construction, and selection. The prepared table today keeps that imputation discussion in its proper session.
+\end{block}
+\coursefooter
+\end{frame}
+
+\end{document}
