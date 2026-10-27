@@ -83,7 +83,7 @@ Online models & Updated incrementally as new observations arrive (Class 19). \\
 \node[flowbox, minimum width=2.3cm, right=1.0cm of te] (st) {Scaler: transform\\only};
 \node[flowbox, minimum width=2.0cm, right=0.9cm of sc] (m) {Random forest\\(fit)};
 \node[flowbox, minimum width=2.0cm, right=0.9cm of st] (ev) {Evaluation};
-\draw[arrow] (d) -- node[above, sloped, font=\scriptsize] {stratified} (tr);
+\draw[arrow] (d) -- node[above=3pt, sloped, pos=0.5, font=\scriptsize] {stratified} (tr);
 \draw[arrow] (d) -- (te);
 \draw[arrow] (tr) -- (sc); \draw[arrow] (te) -- (st);
 \draw[arrow] (sc) -- (m); \draw[arrow] (st) -- (ev);
@@ -236,7 +236,7 @@ artifacts/model & \texttt{best\_gb\_model.pkl} (serialized estimator) \\
 \draw[arrow] (run) -- (compare);
 \draw[arrow] (compare) -- (artifact);
 \draw[arrow] (artifact) -- (select);
-\draw[arrow, bend right=20] (select.west) to node[below, font=\scriptsize] {new hypothesis} (question.south);
+\draw[arrow, bend right=20] (select.west) to node[left=4pt, pos=0.45, font=\scriptsize] {new hypothesis} (question.south);
 \end{tikzpicture}
 \coursefooter
 \end{frame}
@@ -267,7 +267,7 @@ summarized over all thresholds by the area under the precision--recall curve (PR
 
 \begin{frame}{The fraud dataset at a glance}
 \centering
-\includegraphics[width=\textwidth]{images/class18_fraud_overview.pdf}
+\includegraphics[width=\textwidth,height=0.46\textheight,keepaspectratio]{images/class18_fraud_overview.pdf}
 
 \vspace{0.3em}
 \begin{itemize}\footnotesize
@@ -339,7 +339,7 @@ The threshold that turns a probability into a decision is a design choice derive
 
 \begin{frame}{Choosing the threshold: a cost analysis}
 \centering
-\includegraphics[width=\textwidth,height=0.42\textheight,keepaspectratio]{images/class18_threshold_cost.pdf}
+\includegraphics[width=\textwidth,height=0.4\textheight,keepaspectratio]{images/class18_threshold_cost.pdf}
 
 \vspace{0.2em}
 \begin{itemize}\footnotesize
